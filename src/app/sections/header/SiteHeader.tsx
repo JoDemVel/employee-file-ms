@@ -2,6 +2,7 @@ import { SidebarIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
+import { HeaderTexts } from '@/constants/localize';
 
 export function SiteHeader() {
   const { toggleSidebar } = useSidebar();
@@ -17,7 +18,7 @@ export function SiteHeader() {
         >
           <SidebarIcon />
         </Button>
-        <h1 className="text-lg font-semibold">Gestión de Empleados</h1>
+        <h1 className="text-lg font-semibold">{HeaderTexts.title}</h1>
       </div>
     </header>
   );

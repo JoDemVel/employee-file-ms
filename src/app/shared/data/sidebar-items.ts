@@ -1,38 +1,43 @@
-import { SidebarItemsTexts } from "@/constants/localize";
-import { Building, UsersRound, type LucideIcon } from "lucide-react";
-
-export interface SidebarGroupItem {
-  title: string;
-  url: string;
-  icon: LucideIcon;
-  items?: {
-    title: string;
-    url: string;
-  }[];
-}
-
-export interface SidebarItem {
-  name: string;
-  url: string;
-  icon: LucideIcon;
-};
+import { SidebarItemsTexts } from '@/constants/localize';
+import { Building, DollarSign, Settings, UsersRound } from 'lucide-react';
+import type {
+  SidebarGroupItem,
+  SidebarItem,
+} from '@/app/shared/interfaces/Sidebar';
 
 export const sidebarItems: SidebarItem[] = [
   {
-    name: SidebarItemsTexts.departments.title,
-    icon: Building,
-    url: "/departments"
-  }
+    title: SidebarItemsTexts.settings.title,
+    url: '/config',
+    icon: Settings,
+  },
 ];
 
 export const sidebarGroupItems: SidebarGroupItem[] = [
   {
     title: SidebarItemsTexts.employees.title,
     icon: UsersRound,
-    url: "/employees",
+    url: '/employees',
+    isActive: true,
     items: [
-      { title: SidebarItemsTexts.employees.list, url: "/employees/list" },
-      { title: SidebarItemsTexts.employees.memos, url: "/employees/memos" }
-    ]
-  }
+      { title: SidebarItemsTexts.employees.list, url: '/employees/list' },
+      { title: SidebarItemsTexts.employees.memos, url: '/employees/memos' },
+      {
+        title: SidebarItemsTexts.employees.permissions,
+        url: '/employees/permissions',
+      },
+    ],
+  },
+  {
+    title: SidebarItemsTexts.salary.title,
+    icon: DollarSign,
+    url: '/salary',
+    items: [],
+  },
+  {
+    title: SidebarItemsTexts.departments.title,
+    icon: Building,
+    url: '/departments',
+    items: [],
+  },
 ];

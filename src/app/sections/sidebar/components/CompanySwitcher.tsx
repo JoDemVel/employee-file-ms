@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { ChevronsUpDown, Plus } from 'lucide-react';
 
 import {
@@ -7,27 +6,23 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from '@/components/ui/sidebar';
+import type { Company } from '@/app/shared/interfaces/Company';
+import { useCompanySwitcher } from '../hooks/useCompanySwitcher';
+import { SidebarHeaderTexts } from '@/constants/localize';
 
-export function TeamSwitcher({
-  teams,
-}: {
-  teams: {
-    name: string;
-    logo: React.ElementType;
-    subname: string;
-  }[];
-}) {
-  const { isMobile } = useSidebar();
-  const [activeTeam, setActiveTeam] = React.useState(teams[0]);
+interface CompanyProps {
+  companies: Company[];
+}
+
+export function CompanySwitcher({ companies }: CompanyProps) {
+  const { isMobile, activeTeam, setActiveTeam } = useCompanySwitcher(companies);
 
   if (!activeTeam) {
     return null;
@@ -59,9 +54,9 @@ export function TeamSwitcher({
             sideOffset={4}
           >
             <DropdownMenuLabel className="text-muted-foreground text-xs">
-              Teams
+              {SidebarHeaderTexts.companies.title}
             </DropdownMenuLabel>
-            {teams.map((team, index) => (
+            {companies.map((team) => (
               <DropdownMenuItem
                 key={team.name}
                 onClick={() => setActiveTeam(team)}
@@ -71,7 +66,6 @@ export function TeamSwitcher({
                   <team.logo className="size-3.5 shrink-0" />
                 </div>
                 {team.name}
-                <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
@@ -79,7 +73,9 @@ export function TeamSwitcher({
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <Plus className="size-4" />
               </div>
-              <div className="text-muted-foreground font-medium">Add team</div>
+              <div className="text-muted-foreground font-medium">
+                {SidebarHeaderTexts.companies.add}
+              </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
