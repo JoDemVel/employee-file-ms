@@ -1,9 +1,10 @@
 import './App.css';
+import RootLayout from './app/layout/RootLayout';
 
 function App() {
   return (
     <>
-      <h1>Employee File MSs</h1>
+      <RootLayout />
     </>
   );
 }
