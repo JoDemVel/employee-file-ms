@@ -1,4 +1,4 @@
-import type { Company } from '@/app/shared/data/companies';
+import type { Company } from '@/app/shared/interfaces/Company';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useEffect, useState } from 'react';
 

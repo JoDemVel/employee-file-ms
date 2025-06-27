@@ -1,6 +1,6 @@
-import type { Company } from '@/app/shared/data/companies';
 import { useEffect, useState } from 'react';
 import { useSidebarService } from './useSidebarService';
+import type { Company } from '@/app/shared/interfaces/Company';
 
 export const useSidebar = () => {
   const [companies, setCompanies] = useState<Company[]>([]);

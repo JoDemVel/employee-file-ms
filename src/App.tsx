@@ -1,10 +1,16 @@
+import { Route, Routes } from 'react-router';
 import './App.css';
-import RootLayout from './app/layout/RootLayout';
+import RootLayout from '@/app/layout/RootLayout';
+import EmployeesPage from '@/app/pages/employees/Employees';
 
 function App() {
   return (
     <>
-      <RootLayout />
+      <Routes>
+        <Route element={<RootLayout />}>
+          <Route path="/employees" element={<EmployeesPage />} />
+        </Route>
+      </Routes>
     </>
   );
 }
