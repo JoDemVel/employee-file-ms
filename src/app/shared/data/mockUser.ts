@@ -5,7 +5,8 @@ import { mockUsers } from '@/app/shared/data/users';
 export async function fetchUsersWithPagination(
   page: number = 1,
   pageSize: number = 10,
-  search: string = ''
+  search: string = '',
+  companyId: string
 ): Promise<PaginationResponse<User>> {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -16,9 +17,14 @@ export async function fetchUsersWithPagination(
           (user) =>
             user.firstName.toLowerCase().includes(lowerCaseSearch) ||
             user.lastName.toLowerCase().includes(lowerCaseSearch) ||
-            user.email.toLowerCase().includes(lowerCaseSearch)
+            user.email.toLowerCase().includes(lowerCaseSearch) ||
+            user.department.toLowerCase().includes(lowerCaseSearch) ||
+            user.position.toLowerCase().includes(lowerCaseSearch)
         );
       }
+      filteredUsers = filteredUsers.filter((user) => {
+        return user.companyId === companyId;
+      });
 
       const totalUsers = filteredUsers.length;
 
@@ -47,9 +53,33 @@ export async function fetchUsersWithPagination(
 export async function fetchUserById(id: string): Promise<User | null> {
   return new Promise((resolve) => {
     setTimeout(() => {
-      const user = mockUsers.find(u => u.id === id);
-    
+      const user = mockUsers.find((u) => u.id === id);
+
       resolve(user || null);
+    }, 250);
+  });
+}
+
+export async function addUser(user: Omit<User, "id">): Promise<User> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const newUser = { ...user, id: `user-${mockUsers.length + 1}` };
+      mockUsers.push(newUser);
+      resolve(newUser);
+    }, 250);
+  });
+}
+
+export async function updateUser(user: User): Promise<User | null> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const index = mockUsers.findIndex((u) => u.id === user.id);
+      if (index !== -1) {
+        mockUsers[index] = user;
+        resolve(user);
+      } else {
+        resolve(null);
+      }
     }, 250);
   });
 }

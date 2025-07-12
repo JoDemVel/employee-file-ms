@@ -13,6 +13,9 @@ export const SidebarItemsTexts = {
   salary: {
     title: 'Salarios',
   },
+  positions: {
+    title: 'Posiciones',
+  },
   settings: {
     title: 'Configuración',
   },
@@ -22,6 +25,8 @@ export const SidebarHeaderTexts = {
   companies: {
     title: 'Empresas',
     add: 'Añadir Empresa',
+    addDescription:
+      'Añade una nueva empresa para gestionar sus empleados y recursos.',
   },
 };
 
@@ -134,4 +139,44 @@ export const MemorandumTexts = {
   actualMonth: 'Mes Actual',
   all: 'Todos los Memorandums',
   noMemos: 'No hay memorandums para mostrar.',
+};
+
+export const CompanyFormTexts = {
+  name: 'Nombre de la Empresa',
+  namePlaceholder: 'Techobol',
+  companyType: 'Tipo de Empresa',
+  companyTypePlaceholder: 'S.R.L.',
+};
+
+export const FormsButtonTexts = {
+  submit: 'Enviar',
+  cancel: 'Cancelar',
+  reset: 'Reiniciar',
+  save: 'Guardar',
+  edit: 'Editar',
+  delete: 'Eliminar',
+  confirm: 'Confirmar',
+  close: 'Cerrar',
+  back: 'Volver',
+  next: 'Siguiente',
+  previous: 'Anterior',
+  add: 'Añadir',
+  create: 'Crear',
+  update: 'Actualizar',
+  loading: 'Cargando...',
+  saving: 'Guardando...',
+  deleting: 'Eliminando...',
+  retry: 'Reintentar',
+};
+
+export const FormsValidationTexts = {
+  required: 'Este campo es obligatorio.',
+  minLength: 'Debe tener al menos {{min}} caracteres.',
+  maxLength: 'No puede exceder los {{max}} caracteres.',
+  email: 'Debe ser un correo electrónico válido.',
+  phone: 'Debe ser un número de teléfono válido.',
+  url: 'Debe ser una URL válida.',
+  number: 'Debe ser un número válido.',
+  date: 'Debe ser una fecha válida.',
+  time: 'Debe ser una hora válida.',
 };

@@ -35,7 +35,8 @@ export function SearchInput({
     if (debouncedValue !== value) {
       onChange(debouncedValue);
     }
-  }, [debouncedValue, onChange, value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedValue]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setLocalValue(event.target.value);

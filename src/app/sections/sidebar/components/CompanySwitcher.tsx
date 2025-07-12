@@ -15,14 +15,35 @@ import {
 } from '@/components/ui/sidebar';
 import { useCompanySwitcher } from '../hooks/useCompanySwitcher';
 import { SidebarHeaderTexts } from '@/constants/localize';
-import type { Company } from '@/app/shared/interfaces/Company';
+import type { Company } from '@/app/shared/interfaces/company';
+import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
+import { useState } from 'react';
+import { CompanyForm } from './CompanyForm';
 
 interface CompanyProps {
   companies: Company[];
 }
 
 export function CompanySwitcher({ companies }: CompanyProps) {
-  const { isMobile, activeTeam, setActiveTeam } = useCompanySwitcher(companies);
+  const { isMobile, activeTeam, setActiveTeam, setCompanyId } =
+    useCompanySwitcher(companies);
+  const [openForm, setOpenForm] = useState(false);
+
+  const handleCompanyChange = (team: Company) => {
+    setActiveTeam(team);
+    setCompanyId(team.id);
+    if (openForm) {
+      setOpenForm(false);
+    }
+  };
+
+  const getInitials = (name: string) => {
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      return words[0][0] + words[1][0];
+    }
+    return name.slice(0, 2).toLocaleUpperCase();
+  };
 
   if (!activeTeam) {
     return null;
@@ -37,12 +58,18 @@ export function CompanySwitcher({ companies }: CompanyProps) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <activeTeam.logo className="size-4" />
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg font-medium uppercase">
+                {activeTeam.logo ? (
+                  <activeTeam.logo className="size-4" />
+                ) : (
+                  <span>{getInitials(activeTeam.name)}</span>
+                )}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{activeTeam.name}</span>
-                <span className="truncate text-xs">{activeTeam.subname}</span>
+                <span className="truncate text-xs">
+                  {activeTeam.companyType}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -59,17 +86,26 @@ export function CompanySwitcher({ companies }: CompanyProps) {
             {companies.map((team) => (
               <DropdownMenuItem
                 key={team.name}
-                onClick={() => setActiveTeam(team)}
+                onClick={() => handleCompanyChange(team)}
                 className="gap-2 p-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-md border">
-                  <team.logo className="size-3.5 shrink-0" />
+                  {team.logo ? (
+                    <team.logo className="size-4" />
+                  ) : (
+                    <span>{getInitials(team.name)}</span>
+                  )}
                 </div>
                 {team.name}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 p-2">
+            <DropdownMenuItem
+              className="gap-2 p-2"
+              onClick={() => {
+                setOpenForm(true);
+              }}
+            >
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <Plus className="size-4" />
               </div>
@@ -79,6 +115,14 @@ export function CompanySwitcher({ companies }: CompanyProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <ReusableDialog
+          open={openForm}
+          onOpenChange={setOpenForm}
+          title={SidebarHeaderTexts.companies.add}
+          description={SidebarHeaderTexts.companies.addDescription}
+        >
+          <CompanyForm onSave={handleCompanyChange} />
+        </ReusableDialog>
       </SidebarMenuItem>
     </SidebarMenu>
   );

@@ -7,6 +7,7 @@ import type {
 import { ErrorTexts } from '@/constants/localize';
 import { fetchUsersWithPagination } from '../../../shared/data/mockUser';
 import type { User } from '@/app/shared/interfaces/user';
+import { useConfigStore } from '@/app/shared/stores/useConfigStore';
 
 interface UseDataTableReturn<T> {
   data: T[];
@@ -16,6 +17,7 @@ interface UseDataTableReturn<T> {
   pageCount: number;
   searchValue: string;
   filters: TableFilters;
+  setData: (data: T[]) => void;
   setPagination: OnChangeFn<PaginationState>;
   setSearchValue: (search: string) => void;
   setFilters: (filters: TableFilters) => void;
@@ -35,12 +37,13 @@ export function useDataTable<T>({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pageCount, setPageCount] = useState(0);
-  const [searchValue, setSearchValue] = useState(initialFilters.search || '');
+  const [searchValue, setSearchValue] = useState('');
   const [filters, setFilters] = useState<TableFilters>(initialFilters);
   const [pagination, setPaginationState] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: initialPageSize,
   });
+  const { companyId } = useConfigStore();
 
   const setPagination: OnChangeFn<PaginationState> = (updaterOrValue) => {
     setPaginationState((prev) => {
@@ -61,7 +64,8 @@ export function useDataTable<T>({
         const result: PaginationResponse<User> = await fetchUsersWithPagination(
           pagination.pageIndex + 1,
           pagination.pageSize,
-          filters.search || ''
+          searchValue || '',
+          companyId || ''
         );
         setData(result.data as T[]);
         setPageCount(result.totalPages);
@@ -73,7 +77,13 @@ export function useDataTable<T>({
     } finally {
       setLoading(false);
     }
-  }, [endpoint, pagination, filters]);
+  }, [
+    endpoint,
+    pagination.pageIndex,
+    pagination.pageSize,
+    searchValue,
+    companyId,
+  ]);
 
   useEffect(() => {
     fetchData();
@@ -97,6 +107,7 @@ export function useDataTable<T>({
     pageCount,
     searchValue,
     filters,
+    setData,
     setPagination,
     setSearchValue: handleSearchChange,
     setFilters: handleFiltersChange,

@@ -17,7 +17,7 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import { SidebarTexts } from '@/constants/localize';
-import type { SidebarGroupItem } from '@/app/shared/interfaces/Sidebar';
+import type { SidebarGroupItem } from '@/app/shared/interfaces/sidebar';
 
 interface NavMainProps {
   items: SidebarGroupItem[];
@@ -31,7 +31,15 @@ export function NavMain({ items }: NavMainProps) {
         {items.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip={item.title}>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.title}
+                className={
+                  item.disabled
+                    ? 'opacity-60 cursor-not-allowed pointer-events-none'
+                    : ''
+                }
+              >
                 <a href={item.url}>
                   <item.icon />
                   <span>{item.title}</span>
@@ -49,7 +57,14 @@ export function NavMain({ items }: NavMainProps) {
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild>
+                          <SidebarMenuSubButton
+                            asChild
+                            className={
+                              subItem.disabled
+                                ? 'opacity-60 cursor-not-allowed pointer-events-none'
+                                : ''
+                            }
+                          >
                             <a href={subItem.url}>
                               <span>{subItem.title}</span>
                             </a>

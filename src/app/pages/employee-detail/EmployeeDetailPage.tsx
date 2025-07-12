@@ -19,36 +19,43 @@ export function EmployeeDetailPage() {
       value: 'personal-info',
       label: EmployeeDetailsTexts.personalInfo,
       content: <PersonalInfo />,
+      disabled: false,
     },
     {
       value: 'salary',
       label: EmployeeDetailsTexts.salary,
       content: <NotPageYet />,
+      disabled: true,
     },
     {
       value: 'memos',
       label: EmployeeDetailsTexts.memos,
       content: <Memorandum />,
+      disabled: true,
     },
     {
       value: 'permissions',
       label: EmployeeDetailsTexts.permissions,
       content: <NotPageYet />,
+      disabled: true,
     },
     {
       value: 'vacations',
       label: EmployeeDetailsTexts.vacations,
       content: <NotPageYet />,
+      disabled: true,
     },
     {
       value: 'subsidies',
       label: EmployeeDetailsTexts.subsidies,
       content: <NotPageYet />,
+      disabled: true,
     },
     {
       value: 'dismissal',
       label: EmployeeDetailsTexts.dismissal,
       content: <NotPageYet />,
+      disabled: true,
     },
   ];
 
@@ -94,8 +101,14 @@ export function EmployeeDetailPage() {
       <EmployeeInfo user={employee} />
       <Tabs defaultValue="personal-info" className="w-full">
         <TabsList className="w-full mb-2 flex justify-between">
-          {tabItems.map(({ value, label }) => (
-            <TabsTrigger key={value} value={value} className="flex-1">
+          {tabItems.map(({ value, label, disabled }) => (
+            <TabsTrigger
+              key={value}
+              value={value}
+              className={`flex-1 ${
+                disabled ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
               {label}
             </TabsTrigger>
           ))}

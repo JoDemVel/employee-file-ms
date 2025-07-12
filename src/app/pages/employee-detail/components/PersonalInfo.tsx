@@ -1,3 +1,5 @@
+import PdfUploader from '@/app/shared/components/PdfUploader';
+import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { PersonalInfoTexts } from '@/constants/localize';
@@ -11,19 +13,34 @@ import {
   Phone,
   Trash2,
 } from 'lucide-react';
+import { useState } from 'react';
 
 // TODO: Receive user data as props and display resume information
 export function PersonalInfo() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   return (
     <section className="flex flex-col gap-6 p-4">
+      <ReusableDialog
+        title={'Subir Documento'}
+        description={'Sube el documento de contrato del empleado'}
+        open={dialogOpen} // This dialog is not used in this component, but can be used for future enhancements
+        onOpenChange={setDialogOpen}
+      >
+        <PdfUploader
+          onFileAccepted={(file) => {
+            console.log('File accepted:', file);
+          }}
+        />
+      </ReusableDialog>
       <div className="flex justify-between">
         <span className="text-xl font-bold">{PersonalInfoTexts.title}</span>
         <section className="flex gap-4">
-          <Button className="w-40">
+          <Button className="w-40" disabled>
             <CircuitBoard />
             <span>{PersonalInfoTexts.generateContract}</span>
           </Button>
-          <Button className="w-40">
+          <Button className="w-40" onClick={() => setDialogOpen(true)}>
             <FileUp />
             <span>{PersonalInfoTexts.uploadContract}</span>
           </Button>
@@ -33,7 +50,7 @@ export function PersonalInfo() {
         <div className="flex items-center gap-4">
           <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[#DBEAFE] text-[#2563EB]">
             <span className="w-10 h-10">
-              <FileText className='w-full h-full'/>
+              <FileText className="w-full h-full" />
             </span>
           </div>
           <span className="flex flex-col">
@@ -44,18 +61,18 @@ export function PersonalInfo() {
           </span>
         </div>
         <section className="flex flex-col items-center gap-2">
-          <Button variant="outline" className="w-48">
+          <Button variant="outline" className="w-48" disabled>
             <Download />
             <span>{PersonalInfoTexts.download}</span>
           </Button>
-          <Button variant="outline" className="w-48">
+          <Button variant="outline" className="w-48" disabled>
             <FileUp />
             <span>{PersonalInfoTexts.upload}</span>
           </Button>
         </section>
       </section>
       <section className="flex justify-end">
-        <Button variant="destructive" className="w-48">
+        <Button variant="destructive" className="w-48" disabled>
           <Trash2 />
           <span>{PersonalInfoTexts.delete}</span>
         </Button>

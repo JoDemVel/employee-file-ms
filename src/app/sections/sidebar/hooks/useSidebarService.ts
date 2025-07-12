@@ -1,11 +1,6 @@
-import { companies } from '@/app/shared/data/companies';
+import { getMockCompanies } from '@/app/shared/data/mockCompanies';
 
 export const useSidebarService = () => {
-  const getCompanies = async () => {
-    return new Promise((resolve) => {
-      resolve(companies);
-    });
-  };
-
+  const getCompanies = getMockCompanies();
   return { getCompanies };
 };

@@ -6,6 +6,9 @@ import { DataTable } from '@/app/shared/components/DataTable';
 import { columns } from './columns';
 import { SearchInput } from '@/app/shared/components/SearchInput';
 import { EmployeePageTexts } from '@/constants/localize';
+import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
+import { useState } from 'react';
+import UserForm from './UserForm';
 
 export default function EmployeesPage() {
   const {
@@ -15,6 +18,7 @@ export default function EmployeesPage() {
     pagination,
     pageCount,
     searchValue,
+    setData,
     setPagination,
     setSearchValue,
     refetch,
@@ -22,6 +26,13 @@ export default function EmployeesPage() {
     endpoint: '/api/users',
     initialPageSize: 10,
   });
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const onSave = async (newUser: User) => {
+    console.log('New user saved:', newUser);
+    setDialogOpen(false);
+    setData([newUser, ...data]);
+  };
 
   if (error) {
     console.error('Error fetching employees:', error);
@@ -41,6 +52,14 @@ export default function EmployeesPage() {
 
   return (
     <div className="container mx-auto">
+      <ReusableDialog
+        title="Agregar Empleado"
+        description="Completa los detalles del nuevo empleado"
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      >
+        <UserForm onSave={onSave} />
+      </ReusableDialog>
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
@@ -50,7 +69,7 @@ export default function EmployeesPage() {
             {EmployeePageTexts.manageEmployees}
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           {EmployeePageTexts.addEmployee}
         </Button>

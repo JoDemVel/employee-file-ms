@@ -1,5 +1,6 @@
 export interface Company {
+  id: string;
   name: string;
-  subname: string;
-  logo: React.ElementType;
+  companyType: string;
+  logo?: React.ElementType;
 }
