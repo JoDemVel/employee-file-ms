@@ -1,10 +1,10 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import type { User } from '@/app/shared/interfaces/user';
 import { DataTableColumnsTexts } from '@/constants/localize';
 import { formatDate, formatDateHireDate } from '@/lib/formatters';
 import { Actions } from './Actions';
+import type { Employee } from '@/rest-client/interface/Employee';
 
-export const columns: ColumnDef<User>[] = [
+export const columns: ColumnDef<Employee>[] = [
   {
     id: 'fullName',
     header: () => (
@@ -33,16 +33,16 @@ export const columns: ColumnDef<User>[] = [
     accessorKey: 'department',
     header: DataTableColumnsTexts.department,
     cell: ({ row }) => {
-      const { department } = row.original;
+      const { departmentName } = row.original;
 
-      return <span className="text-muted-foreground">{department}</span>;
+      return <span className="text-muted-foreground">{departmentName}</span>;
     },
   },
   {
-    accessorKey: 'position',
+    accessorKey: 'positionName',
     header: DataTableColumnsTexts.position,
     cell: ({ row }) => {
-      const position = row.getValue('position') as string;
+      const position = row.getValue('positionName') as string;
       return (
         <span className="text-muted-foreground">
           {position.charAt(0).toUpperCase() + position.slice(1)}
@@ -82,9 +82,9 @@ export const columns: ColumnDef<User>[] = [
     id: 'actions',
     header: DataTableColumnsTexts.actions,
     cell: ({ row }) => {
-      const user = row.original;
+      const employee = row.original;
 
-      return <Actions user={user} />;
+      return <Actions employee={employee} />;
     },
   },
 ];

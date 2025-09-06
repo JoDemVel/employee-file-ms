@@ -15,9 +15,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { addDepartment } from '@/app/shared/data/mockDepartments';
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
-import type { Department } from '@/app/shared/interfaces/department';
+import type { Department } from '@/rest-client/interface/Department';
+
+const departmentService = new (
+  await import('@/rest-client/services/DepartmentService')
+).DepartmentService();
 
 const formSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -46,7 +49,7 @@ export default function DepartmentForm({ onSave }: DepartmentFormProps) {
     try {
       setLoading(true);
 
-      const newDepartment = await addDepartment({
+      const newDepartment = await departmentService.createDepartment({
         ...values,
         companyId: companyId || '',
       });

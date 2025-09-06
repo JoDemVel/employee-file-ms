@@ -22,12 +22,6 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
-import type { Department } from '@/app/shared/interfaces/department';
-import type { Position } from '@/app/shared/interfaces/position';
-import { getMockDepartments } from '@/app/shared/data/mockDepartments';
-import { getMockPositionsByDepartment } from '@/app/shared/data/mockPositions';
-import { addUser } from '@/app/shared/data/mockUser';
-import type { User } from '@/app/shared/interfaces/user';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -36,12 +30,18 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import type { Employee } from '@/rest-client/interface/Employee';
+import { EmployeeService } from '@/rest-client/services/EmployeeService';
+import type { Department } from '@/rest-client/interface/Department';
+import { DepartmentService } from '@/rest-client/services/DepartmentService';
+import type { Position } from '@/rest-client/interface/Position';
+import { PositionService } from '@/rest-client/services/PositionService';
 
 const formSchema = z.object({
   firstName: z.string().min(2, 'Nombre requerido'),
   lastName: z.string().min(2, 'Apellido requerido'),
-  department: z.string().nonempty('Departamento requerido'),
-  position: z.string().nonempty('Puesto requerido'),
+  departmentId: z.string().nonempty('Departamento requerido'),
+  positionId: z.string().nonempty('Puesto requerido'),
   email: z.string().email('Correo inválido'),
   phone: z.string().min(7, 'Teléfono requerido'),
   hireDate: z.string().nonempty('Fecha de contratación requerida'),
@@ -50,9 +50,13 @@ const formSchema = z.object({
 type UserFormValues = z.infer<typeof formSchema>;
 
 interface UserFormProps {
-  onSave?: (newUser: User) => void;
-  user?: User;
+  onSave?: (newEmployee: Employee) => void;
+  user?: Employee;
 }
+
+const employeeService = new EmployeeService();
+const departmentService = new DepartmentService();
+const positionService = new PositionService();
 
 export default function UserForm({ onSave, user }: UserFormProps) {
   const { companyId } = useConfigStore();
@@ -68,8 +72,8 @@ export default function UserForm({ onSave, user }: UserFormProps) {
     defaultValues: {
       firstName: '',
       lastName: '',
-      department: '',
-      position: '',
+      departmentId: '',
+      positionId: '',
       email: '',
       phone: '',
       hireDate: '',
@@ -78,29 +82,27 @@ export default function UserForm({ onSave, user }: UserFormProps) {
 
   useEffect(() => {
     if (!companyId) return;
-    getMockDepartments(companyId).then(setDepartments);
+    departmentService.getDepartmentsByCompany(companyId).then(setDepartments);
   }, [companyId]);
 
   useEffect(() => {
     if (!companyId || !selectedDepartmentId) {
       setPositions([]);
-      form.setValue('position', '');
+      form.setValue('positionId', '');
       return;
     }
-
-    getMockPositionsByDepartment(selectedDepartmentId, companyId).then(
-      setPositions
-    );
+    console.log('Fetching positions for department:', selectedDepartmentId);
+    console.log('Company:', companyId);
+    positionService.getPositionsByCompany(companyId).then(setPositions);
   }, [selectedDepartmentId, companyId, form]);
 
-  // ✅ NUEVO: cargar datos si hay un `user` recibido
   useEffect(() => {
     if (user) {
       const {
         firstName,
         lastName,
-        department,
-        position,
+        departmentId,
+        positionId,
         email,
         phone,
         hireDate,
@@ -109,14 +111,14 @@ export default function UserForm({ onSave, user }: UserFormProps) {
       form.reset({
         firstName,
         lastName,
-        department,
-        position,
+        departmentId,
+        positionId,
         email,
         phone,
-        hireDate: hireDate?.split('T')[0] || '', // ISO format YYYY-MM-DD
+        hireDate: hireDate?.split('T')[0] || '',
       });
 
-      const selectedDept = departments.find((d) => d.name === department);
+      const selectedDept = departments.find((d) => d.id === departmentId);
       setSelectedDepartmentId(selectedDept?.id || null);
     }
   }, [user, departments, form]);
@@ -128,9 +130,12 @@ export default function UserForm({ onSave, user }: UserFormProps) {
       const newUser = {
         ...values,
         companyId: companyId || '',
+        address: '', // TODO: Replace with actual address input if available
+        birthDate: '', // TODO: Replace with actual birthDate input if available
+        locationId: 'ed56f3e1-cd33-4cf8-b350-2a058fd44c56', // TODO: Replace with actual locationId input if available
       };
 
-      const result = await addUser(newUser);
+      const result = await employeeService.createEmployee(newUser);
 
       toast('Usuario creado', {
         description: `${values.firstName} ${values.lastName} ha sido añadido.`,
@@ -268,7 +273,7 @@ export default function UserForm({ onSave, user }: UserFormProps) {
         {/* Departamento */}
         <FormField
           control={form.control}
-          name="department"
+          name="departmentId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Departamento</FormLabel>
@@ -276,7 +281,7 @@ export default function UserForm({ onSave, user }: UserFormProps) {
                 value={field.value}
                 onValueChange={(value) => {
                   field.onChange(value);
-                  const selected = departments.find((d) => d.name === value);
+                  const selected = departments.find((d) => d.id === value);
                   setSelectedDepartmentId(selected?.id || null);
                 }}
                 disabled={loading || departments.length === 0}
@@ -288,7 +293,7 @@ export default function UserForm({ onSave, user }: UserFormProps) {
                 </FormControl>
                 <SelectContent>
                   {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.name}>
+                    <SelectItem key={dept.id} value={dept.id}>
                       {dept.name}
                     </SelectItem>
                   ))}
@@ -302,7 +307,7 @@ export default function UserForm({ onSave, user }: UserFormProps) {
         {/* Puesto */}
         <FormField
           control={form.control}
-          name="position"
+          name="positionId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Puesto</FormLabel>
@@ -318,7 +323,7 @@ export default function UserForm({ onSave, user }: UserFormProps) {
                 </FormControl>
                 <SelectContent>
                   {positions.map((position) => (
-                    <SelectItem key={position.id} value={position.name}>
+                    <SelectItem key={position.id} value={position.id}>
                       {position.name}
                     </SelectItem>
                   ))}

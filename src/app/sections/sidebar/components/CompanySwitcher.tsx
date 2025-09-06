@@ -15,10 +15,11 @@ import {
 } from '@/components/ui/sidebar';
 import { useCompanySwitcher } from '../hooks/useCompanySwitcher';
 import { SidebarHeaderTexts } from '@/constants/localize';
-import type { Company } from '@/app/shared/interfaces/company';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { useState } from 'react';
 import { CompanyForm } from './CompanyForm';
+import type { Company } from '@/rest-client/interface/Company';
+import { CompanyService } from '@/rest-client/services/CompanyService';
 
 interface CompanyProps {
   companies: Company[];
@@ -29,11 +30,28 @@ export function CompanySwitcher({ companies }: CompanyProps) {
     useCompanySwitcher(companies);
   const [openForm, setOpenForm] = useState(false);
 
-  const handleCompanyChange = (team: Company) => {
-    setActiveTeam(team);
-    setCompanyId(team.id);
-    if (openForm) {
-      setOpenForm(false);
+  const handleCompanyChange = async (
+    team: Company | Partial<Company>,
+    isCreating = false
+  ) => {
+    try {
+      let finalCompany: Company;
+
+      if (isCreating) {
+        const companyService = new CompanyService();
+        finalCompany = await companyService.createCompany(team);
+      } else {
+        finalCompany = team as Company;
+      }
+
+      setActiveTeam(finalCompany);
+      setCompanyId(finalCompany.id);
+
+      if (openForm) {
+        setOpenForm(false);
+      }
+    } catch (error) {
+      console.error('Error handling company:', error);
     }
   };
 
@@ -59,16 +77,17 @@ export function CompanySwitcher({ companies }: CompanyProps) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg font-medium uppercase">
-                {activeTeam.logo ? (
+                {/* {activeTeam.logo ? (
                   <activeTeam.logo className="size-4" />
-                ) : (
-                  <span>{getInitials(activeTeam.name)}</span>
-                )}
+                ) : ( */}
+                <span>{getInitials(activeTeam.name)}</span>
+                {/* )} */}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{activeTeam.name}</span>
                 <span className="truncate text-xs">
-                  {activeTeam.companyType}
+                  {/* {activeTeam.companyType} */}
+                  S.R.L.
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
@@ -90,11 +109,11 @@ export function CompanySwitcher({ companies }: CompanyProps) {
                 className="gap-2 p-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-md border">
-                  {team.logo ? (
+                  {/* {team.logo ? (
                     <team.logo className="size-4" />
-                  ) : (
-                    <span>{getInitials(team.name)}</span>
-                  )}
+                  ) : ( */}
+                  <span>{getInitials(team.name)}</span>
+                  {/* )} */}
                 </div>
                 {team.name}
               </DropdownMenuItem>

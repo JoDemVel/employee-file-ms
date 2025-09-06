@@ -4,10 +4,13 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
-import type { Position } from '@/app/shared/interfaces/position';
-import { getMockPositions } from '@/app/shared/data/mockPositions';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import PositionForm from './PositionForm';
+import type { Position } from '@/rest-client/interface/Position';
+
+const positionService = new (
+  await import('@/rest-client/services/PositionService')
+).PositionService();
 
 export function PositionsPage() {
   const { companyId } = useConfigStore();
@@ -21,7 +24,7 @@ export function PositionsPage() {
   const fetchPositions = async () => {
     try {
       setLoading(true);
-      const data = await getMockPositions(companyId!);
+      const data = await positionService.getPositionsByCompany(companyId!);
       setPositions(data);
       setFiltered(data);
       setError(null);
@@ -113,7 +116,7 @@ export function PositionsPage() {
             <li key={position.id} className="p-4 bg-card rounded-md shadow-sm">
               <p className="font-medium">{position.name}</p>
               <p className="text-sm text-muted-foreground">
-                {position.description || 'Sin descripción'}
+                {'Sin descripción'}
               </p>
             </li>
           ))}

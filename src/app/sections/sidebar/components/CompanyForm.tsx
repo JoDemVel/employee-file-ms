@@ -29,7 +29,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface CompanyFormProps {
-  onSave: (data: Company) => void;
+  onSave: (data: Company, isCreating: boolean) => void;
 }
 
 export function CompanyForm({ onSave }: CompanyFormProps) {
@@ -48,7 +48,7 @@ export function CompanyForm({ onSave }: CompanyFormProps) {
 
     addCompany(data).then((res: Company) => {
       form.reset();
-      onSave(res);
+      onSave(res, true);
     });
 
     setTimeout(() => {

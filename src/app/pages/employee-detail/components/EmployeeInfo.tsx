@@ -1,6 +1,5 @@
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { StatusBadge } from '@/app/shared/components/StatusBadge';
-import type { User } from '@/app/shared/interfaces/user';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmployeeDetailsTexts } from '@/constants/localize';
@@ -15,12 +14,14 @@ import {
 } from 'lucide-react';
 import UserForm from '../../employees/UserForm';
 import { useState } from 'react';
+import type { Employee } from '@/rest-client/interface/Employee';
 
-export function EmployeeInfo({ user }: { user: User }) {
-  const { firstName, lastName, position, department, hireDate, email } = user;
+export function EmployeeInfo({ user }: { user: Employee }) {
+  const { firstName, lastName, positionName, departmentName, hireDate, email } =
+    user;
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const onSave = async (newUser: User) => {
+  const onSave = async (newUser: Employee) => {
     console.log('New user saved:', newUser);
     setDialogOpen(false);
   };
@@ -46,9 +47,10 @@ export function EmployeeInfo({ user }: { user: User }) {
               </span>
               <span className="flex items-center gap-2">
                 <Briefcase />
-                {position.charAt(0).toUpperCase() + position.slice(1)}
+                {positionName.charAt(0).toUpperCase() + positionName.slice(1)}
                 <span>|</span>
-                {department.charAt(0).toUpperCase() + department.slice(1)}
+                {departmentName.charAt(0).toUpperCase() +
+                  departmentName.slice(1)}
               </span>
               <span className="flex items-center gap-2">
                 <StatusBadge status="Active" color="green" />

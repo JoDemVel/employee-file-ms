@@ -1,6 +1,7 @@
-import { getMockCompanies } from '@/app/shared/data/mockCompanies';
+import { CompanyService } from '@/rest-client/services/CompanyService';
 
 export const useSidebarService = () => {
-  const getCompanies = getMockCompanies();
+  const companyService = new CompanyService();
+  const getCompanies = companyService.getCompanies();
   return { getCompanies };
 };

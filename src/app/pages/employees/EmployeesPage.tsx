@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useDataTable } from './hooks/userDataTable';
-import type { User } from '@/app/shared/interfaces/user';
 import { DataTable } from '@/app/shared/components/DataTable';
 import { columns } from './columns';
 import { SearchInput } from '@/app/shared/components/SearchInput';
@@ -9,6 +8,7 @@ import { EmployeePageTexts } from '@/constants/localize';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { useState } from 'react';
 import UserForm from './UserForm';
+import type { Employee } from '@/rest-client/interface/Employee';
 
 export default function EmployeesPage() {
   const {
@@ -22,16 +22,16 @@ export default function EmployeesPage() {
     setPagination,
     setSearchValue,
     refetch,
-  } = useDataTable<User>({
-    endpoint: '/api/users',
+  } = useDataTable<Employee>({
+    endpoint: '/api/employees',
     initialPageSize: 10,
   });
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const onSave = async (newUser: User) => {
-    console.log('New user saved:', newUser);
+  const onSave = async (newEmployee: Employee) => {
+    console.log('New user saved:', newEmployee);
     setDialogOpen(false);
-    setData([newUser, ...data]);
+    setData([newEmployee, ...data]);
   };
 
   if (error) {

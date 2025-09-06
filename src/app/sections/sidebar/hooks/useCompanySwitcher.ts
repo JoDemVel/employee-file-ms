@@ -1,6 +1,6 @@
-import type { Company } from '@/app/shared/interfaces/company';
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
 import { useSidebar } from '@/components/ui/sidebar';
+import type { Company } from '@/rest-client/interface/Company';
 import { useEffect, useState } from 'react';
 
 export const useCompanySwitcher = (companies: Company[]) => {

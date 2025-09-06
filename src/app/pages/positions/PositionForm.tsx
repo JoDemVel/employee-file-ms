@@ -23,10 +23,16 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
-import type { Department } from '@/app/shared/interfaces/department';
-import { getMockDepartments } from '@/app/shared/data/mockDepartments';
-import { addMockPosition } from '@/app/shared/data/mockPositions';
-import type { Position } from '@/app/shared/interfaces/position';
+import type { Position } from '@/rest-client/interface/Position';
+import type { Department } from '@/rest-client/interface/Department';
+
+const departmentService = new (
+  await import('@/rest-client/services/DepartmentService')
+).DepartmentService();
+
+const positionService = new (
+  await import('@/rest-client/services/PositionService')
+).PositionService();
 
 const formSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -57,7 +63,7 @@ export default function PositionForm({ onSave }: PositionFormProps) {
   useEffect(() => {
     async function fetchDepartments() {
       if (!companyId) return;
-      const data = await getMockDepartments(companyId);
+      const data = await departmentService.getDepartmentsByCompany(companyId);
       setDepartments(data);
     }
 
@@ -67,7 +73,7 @@ export default function PositionForm({ onSave }: PositionFormProps) {
   const onSubmit = async (values: PositionFormValues) => {
     try {
       setLoading(true);
-      const newPosition = await addMockPosition({
+      const newPosition = await positionService.createPosition({
         ...values,
         companyId: companyId || '',
       });

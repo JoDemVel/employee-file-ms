@@ -4,10 +4,13 @@ import { Input } from '@/components/ui/input';
 import { RefreshCw, Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
-import type { Department } from '@/app/shared/interfaces/department';
-import { getMockDepartments } from '@/app/shared/data/mockDepartments';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import DepartmentForm from './DepartmentForm';
+import type { Department } from '@/rest-client/interface/Department';
+
+const departmentService = new (
+  await import('@/rest-client/services/DepartmentService')
+).DepartmentService();
 
 export function DepartmentsPage() {
   const { companyId } = useConfigStore();
@@ -21,7 +24,7 @@ export function DepartmentsPage() {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const data = await getMockDepartments(companyId!);
+      const data = await departmentService.getDepartmentsByCompany(companyId!);
       setDepartments(data);
       setFiltered(data);
       setError(null);
@@ -119,7 +122,7 @@ export function DepartmentsPage() {
             <li key={dept.id} className="p-4 bg-card rounded-md shadow-sm">
               <p className="font-medium">{dept.name}</p>
               <p className="text-sm text-muted-foreground">
-                {dept.description || 'Sin descripción'}
+                {'Sin descripción'}
               </p>
             </li>
           ))}

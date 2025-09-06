@@ -8,6 +8,7 @@ import { ErrorTexts } from '@/constants/localize';
 import { fetchUsersWithPagination } from '../../../shared/data/mockUser';
 import type { User } from '@/app/shared/interfaces/user';
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
+import { EmployeeService } from '@/rest-client/services/EmployeeService';
 
 interface UseDataTableReturn<T> {
   data: T[];
@@ -23,6 +24,8 @@ interface UseDataTableReturn<T> {
   setFilters: (filters: TableFilters) => void;
   refetch: () => void;
 }
+
+const employeeService = new EmployeeService();
 
 export function useDataTable<T>({
   endpoint,
@@ -69,6 +72,18 @@ export function useDataTable<T>({
         );
         setData(result.data as T[]);
         setPageCount(result.totalPages);
+      } else if (endpoint.includes('/employees')) {
+        if (!companyId) {
+          throw new Error('Company ID is required to fetch employees');
+        }
+
+        const result = await employeeService.getEmployeesByCompany(companyId, {
+          page: pagination.pageIndex,
+          size: pagination.pageSize,
+        });
+
+        setData(result.content as T[]);
+        setPageCount(result.page.totalPages);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : ErrorTexts.genericError);

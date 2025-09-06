@@ -1,4 +1,3 @@
-import type { User } from '@/app/shared/interfaces/user';
 import { useNavigate } from 'react-router';
 import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,12 +10,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { DataTableColumnsTexts } from '@/constants/localize';
+import type { Employee } from '@/rest-client/interface/Employee';
 
-export function Actions({ user }: { user: User }) {
+export function Actions({ employee }: { employee: Employee }) {
   const navigate = useNavigate();
 
   const handleViewDetails = () => {
-    navigate(`/employees/${user.id}`);
+    navigate(`/employees/${employee.id}`);
   };
 
   return (
@@ -30,7 +30,7 @@ export function Actions({ user }: { user: User }) {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{DataTableColumnsTexts.actions}</DropdownMenuLabel>
         <DropdownMenuItem
-          onClick={() => navigator.clipboard.writeText(user.id)}
+          onClick={() => navigator.clipboard.writeText(employee.id)}
         >
           {DataTableColumnsTexts.copyId}
         </DropdownMenuItem>

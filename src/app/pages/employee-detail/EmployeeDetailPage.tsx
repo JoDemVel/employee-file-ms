@@ -1,5 +1,3 @@
-import { fetchUserById } from '@/app/shared/data/mockUser';
-import type { User } from '@/app/shared/interfaces/user';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { EmployeeInfo } from './components/EmployeeInfo';
@@ -10,10 +8,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { NotPageYet } from './components/NotPageYet';
 import { Memorandum } from './components/Memorandum';
 import { SalarySummary } from './components/SalarySummary';
+import type { Employee } from '@/rest-client/interface/Employee';
+import { AbsencePermissionSection } from './components/AbsencePermissionSection';
+
+const employeeService = new (
+  await import('@/rest-client/services/EmployeeService')
+).EmployeeService();
 
 export function EmployeeDetailPage() {
   const { employeeId } = useParams();
-  const [employee, setEmployee] = useState<User | null>(null);
+  const [employee, setEmployee] = useState<Employee | null>(null);
 
   const tabItems = [
     {
@@ -25,19 +29,10 @@ export function EmployeeDetailPage() {
     {
       value: 'salary',
       label: EmployeeDetailsTexts.salary,
-      content: (
-        <SalarySummary
-          salarioBase={25000}
-          bonoAntiguedad={4000}
-          bonosAdicionales={[
-            { nombre: 'Bono de desempeño', monto: 2000 },
-            { nombre: 'Bono de puntualidad', monto: 1500 },
-          ]}
-          deducciones={[
-            { nombre: 'ISR', monto: 3000 },
-            { nombre: 'IMSS', monto: 1200 },
-          ]}
-        />
+      content: employee?.hireDate ? (
+        <SalarySummary employeeId={employeeId!} hireDate={employee.hireDate} />
+      ) : (
+        <div className="text-red-600">Hire date not available.</div>
       ),
       disabled: false,
     },
@@ -50,8 +45,8 @@ export function EmployeeDetailPage() {
     {
       value: 'permissions',
       label: EmployeeDetailsTexts.permissions,
-      content: <NotPageYet />,
-      disabled: true,
+      content: <AbsencePermissionSection employeeId={employeeId!} />,
+      disabled: false,
     },
     {
       value: 'vacations',
@@ -80,11 +75,11 @@ export function EmployeeDetailPage() {
         return;
       }
       try {
-        const response = await fetchUserById(employeeId);
+        const response = await employeeService.getEmployeeById(employeeId);
         if (!response) {
           throw new Error('Employee not found');
         }
-        const data: User = await response;
+        const data: Employee = await response;
         setEmployee(data);
       } catch (error) {
         console.error('Error fetching employee details:', error);
