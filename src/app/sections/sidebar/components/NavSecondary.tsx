@@ -7,7 +7,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import type { SidebarItem } from '@/app/shared/interfaces/Sidebar';
+import type { SidebarItem } from '@/app/shared/interfaces/sidebar';
 
 interface NavSecondaryProps
   extends React.ComponentPropsWithoutRef<typeof SidebarGroup> {
@@ -21,7 +21,15 @@ export function NavSecondary({ items, ...props }: NavSecondaryProps) {
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild size="sm">
+              <SidebarMenuButton
+                asChild
+                size="sm"
+                className={`${
+                  item.disabled
+                    ? 'opacity-60 cursor-not-allowed pointer-events-none'
+                    : ''
+                }`}
+              >
                 <a href={item.url}>
                   <item.icon />
                   <span>{item.title}</span>

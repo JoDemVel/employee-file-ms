@@ -1,0 +1,138 @@
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router';
+import { EmployeeInfo } from './components/EmployeeInfo';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PersonalInfo } from './components/PersonalInfo';
+import { EmployeeDetailsTexts } from '@/constants/localize';
+import { Card, CardContent } from '@/components/ui/card';
+import { NotPageYet } from './components/NotPageYet';
+import { Memorandum } from './components/Memorandum';
+import { SalarySummary } from './components/SalarySummary';
+import { AbsencePermissionSection } from './components/AbsencePermissionSection';
+import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
+
+const employeeService = new (
+  await import('@/rest-client/services/EmployeeService')
+).EmployeeService();
+
+export function EmployeeDetailPage() {
+  const { employeeId } = useParams();
+  const [employee, setEmployee] = useState<EmployeeResponse | null>(null);
+
+  const tabItems = [
+    {
+      value: 'personal-info',
+      label: EmployeeDetailsTexts.personalInfo,
+      content: <PersonalInfo />,
+      disabled: false,
+    },
+    {
+      value: 'salary',
+      label: EmployeeDetailsTexts.salary,
+      content: employee?.hireDate ? (
+        <SalarySummary employeeId={employeeId!} />
+      ) : (
+        <div className="text-red-600">Hire date not available.</div>
+      ),
+      disabled: false,
+    },
+    {
+      value: 'memos',
+      label: EmployeeDetailsTexts.memos,
+      content: <Memorandum />,
+      disabled: true,
+    },
+    {
+      value: 'permissions',
+      label: EmployeeDetailsTexts.permissions,
+      content: <AbsencePermissionSection employeeId={employeeId!} />,
+      disabled: false,
+    },
+    {
+      value: 'vacations',
+      label: EmployeeDetailsTexts.vacations,
+      content: <NotPageYet />,
+      disabled: true,
+    },
+    {
+      value: 'subsidies',
+      label: EmployeeDetailsTexts.subsidies,
+      content: <NotPageYet />,
+      disabled: true,
+    },
+    {
+      value: 'dismissal',
+      label: EmployeeDetailsTexts.dismissal,
+      content: <NotPageYet />,
+      disabled: true,
+    },
+  ];
+
+  useEffect(() => {
+    const fetchEmployee = async () => {
+      if (!employeeId) {
+        console.error('Employee ID is required');
+        return;
+      }
+      try {
+        const response = await employeeService.getEmployeeById(employeeId);
+        if (!response) {
+          throw new Error('Employee not found');
+        }
+        const data: EmployeeResponse = response;
+        setEmployee(data);
+      } catch (error) {
+        console.error('Error fetching employee details:', error);
+      }
+    };
+
+    fetchEmployee();
+  }, [employeeId]);
+
+  if (!employeeId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-600">Employee ID is required.</p>
+      </div>
+    );
+  }
+
+  if (!employee) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-600">Loading employee details...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-4">
+      <EmployeeInfo user={employee} />
+      <Tabs defaultValue="personal-info" className="w-full">
+        <TabsList className="w-full mb-2 flex justify-between">
+          {tabItems.map(({ value, label, disabled }) => (
+            <TabsTrigger
+              key={value}
+              value={value}
+              className={`flex-1 ${
+                disabled
+                  ? 'opacity-50 cursor-not-allowed pointer-events-none'
+                  : ''
+              }`}
+            >
+              {label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {tabItems.map(({ value, content }) => (
+          <TabsContent key={value} value={value}>
+            <Card className="min-h-[530px]">
+              <CardContent>{content}</CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
+    </div>
+  );
+}

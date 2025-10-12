@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import type { SidebarItem } from '@/app/shared/interfaces/Sidebar';
+import type { SidebarItem } from '@/app/shared/interfaces/sidebar';
 import { SidebarProjectTexts } from '@/constants/localize';
 
 interface NavProjectsProps {
@@ -32,7 +32,12 @@ export function NavProjects({ projects }: NavProjectsProps) {
       <SidebarMenu>
         {projects.map((item) => (
           <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton
+              asChild
+              className={`${
+                item.disabled ? 'opacity-60 cursor-not-allowed pointer-events-none' : ''
+              }`}
+            >
               <a href={item.url}>
                 <item.icon />
                 <span>{item.title}</span>

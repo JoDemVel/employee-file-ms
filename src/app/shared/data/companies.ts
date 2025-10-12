@@ -1,15 +1,17 @@
 import { Command, GalleryVerticalEnd } from 'lucide-react';
-import type { Company } from '@/app/shared/interfaces/Company';
+import type { Company } from '@/app/shared/interfaces/company';
 
 export const companies: Company[] = [
   {
+    id: 'comp-0',
     name: 'TECHOBOL',
-    subname: 'S.R.L.',
+    companyType: 'S.R.L.',
     logo: GalleryVerticalEnd,
   },
   {
+    id: 'comp-1',
     name: 'Megadis',
-    subname: 'S.A.',
+    companyType: 'S.A.',
     logo: Command,
   },
 ];
