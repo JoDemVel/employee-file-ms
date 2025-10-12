@@ -8,8 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { NotPageYet } from './components/NotPageYet';
 import { Memorandum } from './components/Memorandum';
 import { SalarySummary } from './components/SalarySummary';
-import type { Employee } from '@/rest-client/interface/Employee';
 import { AbsencePermissionSection } from './components/AbsencePermissionSection';
+import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 
 const employeeService = new (
   await import('@/rest-client/services/EmployeeService')
@@ -17,7 +17,7 @@ const employeeService = new (
 
 export function EmployeeDetailPage() {
   const { employeeId } = useParams();
-  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [employee, setEmployee] = useState<EmployeeResponse | null>(null);
 
   const tabItems = [
     {
@@ -30,7 +30,7 @@ export function EmployeeDetailPage() {
       value: 'salary',
       label: EmployeeDetailsTexts.salary,
       content: employee?.hireDate ? (
-        <SalarySummary employeeId={employeeId!} hireDate={employee.hireDate} />
+        <SalarySummary employeeId={employeeId!} />
       ) : (
         <div className="text-red-600">Hire date not available.</div>
       ),
@@ -79,7 +79,7 @@ export function EmployeeDetailPage() {
         if (!response) {
           throw new Error('Employee not found');
         }
-        const data: Employee = await response;
+        const data: EmployeeResponse = response;
         setEmployee(data);
       } catch (error) {
         console.error('Error fetching employee details:', error);

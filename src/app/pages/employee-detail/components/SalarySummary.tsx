@@ -3,17 +3,19 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SalarySummaryTexts } from '@/constants/localize';
 import type { BaseSalaryResponse } from '@/rest-client/interface/response/BaseSalaryResponse';
-import type { SalaryEventResponse } from '@/rest-client/interface/response/SalaryEventResponse';
+import type {
+  PayrollResponse,
+  PayrollDeductionResponse,
+} from '@/rest-client/interface/response/PayrollResponse';
 import { BaseSalaryService } from '@/rest-client/services/BaseSalaryService';
-import { SalaryEventService } from '@/rest-client/services/SalaryEventService';
 import { BanknoteArrowDown, Loader2, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { BaseSalaryForm } from './forms/BaseSalaryForm';
+import { PayrollService } from '@/rest-client/services/PayrollService';
 
 type SalarySummaryProps = {
   employeeId: string;
-  hireDate: string;
 };
 
 const formatCurrency = (value: number) =>
@@ -26,11 +28,15 @@ const formatCurrency = (value: number) =>
 type DialogContentType = 'BASE_SALARY' | 'DEDUCTION' | null;
 
 const baseSalaryService = new BaseSalaryService();
-const salaryEventService = new SalaryEventService();
+const payrollService = new PayrollService();
 
-export function SalarySummary({ employeeId, hireDate }: SalarySummaryProps) {
+type DeductionsByType = {
+  [key: string]: PayrollDeductionResponse[];
+};
+
+export function SalarySummary({ employeeId }: SalarySummaryProps) {
   const [baseSalary, setBaseSalary] = useState<BaseSalaryResponse | null>(null);
-  const [deductions, setDeductions] = useState<SalaryEventResponse[]>([]);
+  const [payroll, setPayroll] = useState<PayrollResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,13 +48,13 @@ export function SalarySummary({ employeeId, hireDate }: SalarySummaryProps) {
         setLoading(true);
         setError(null);
 
-        const [salary, salaryDeductions] = await Promise.all([
+        const [salary, payrollData] = await Promise.all([
           baseSalaryService.getBaseSalaryByEmployee(employeeId),
-          salaryEventService.getDeductionsByEmployee(employeeId),
+          payrollService.getPayrollsByEmployeeId(employeeId),
         ]);
 
         setBaseSalary(salary);
-        setDeductions(salaryDeductions);
+        setPayroll(payrollData);
       } catch (err) {
         console.error('Error fetching salary data:', err);
         setError(
@@ -66,75 +72,6 @@ export function SalarySummary({ employeeId, hireDate }: SalarySummaryProps) {
     }
   }, [employeeId]);
 
-  // Calcular años trabajados desde la fecha de contratación
-  const calculateYearsWorked = (hireDate: string): number => {
-    console.log(hireDate);
-    const today = new Date();
-    const hire = new Date(hireDate);
-    const diffTime = today.getTime() - hire.getTime();
-    const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
-    return Math.floor(diffYears);
-  };
-
-  // Calcular bono de antigüedad
-  const calculateSeniorityBonus = (
-    baseSalaryAmount: number,
-    yearsWorked: number
-  ): number => {
-    const bonusRate = yearsWorked * 0.05;
-    return Math.round(baseSalaryAmount * bonusRate * 100) / 100; // Redondear a 2 decimales
-  };
-
-  // Separar deducciones por tipo
-  const separateDeductionsByType = (deductions: SalaryEventResponse[]) => {
-    const permissions = deductions.filter((d) =>
-      d.description?.toLowerCase().includes('permiso')
-    );
-    const absences = deductions.filter((d) =>
-      d.description?.toLowerCase().includes('falta')
-    );
-    const others = deductions.filter(
-      (d) =>
-        !d.description?.toLowerCase().includes('permiso') &&
-        !d.description?.toLowerCase().includes('falta')
-    );
-
-    return { permissions, absences, others };
-  };
-
-  // Calcular totales
-  const yearsWorked = calculateYearsWorked(hireDate);
-  const seniorityBonus = baseSalary
-    ? calculateSeniorityBonus(baseSalary.amount, yearsWorked)
-    : 0;
-
-  const { permissions, absences, others } =
-    separateDeductionsByType(deductions);
-
-  const totalPermissions = permissions.reduce(
-    (sum, perm) => sum + perm.amount,
-    0
-  );
-  const totalAbsences = absences.reduce(
-    (sum, absence) => sum + absence.amount,
-    0
-  );
-  const totalOtherDeductions = others.reduce(
-    (sum, other) => sum + other.amount,
-    0
-  );
-  const totalDeductions =
-    totalPermissions + totalAbsences + totalOtherDeductions;
-
-  // Calcular deducción de Gestora (12.71% del salario base + bono)
-  const gestionDeduction = baseSalary
-    ? Math.round((baseSalary.amount + seniorityBonus) * 0.1271 * 100) / 100
-    : 0;
-
-  const salarioFinal = baseSalary
-    ? baseSalary.amount + seniorityBonus - gestionDeduction - totalDeductions
-    : 0;
-
   const handleOpen = (type: DialogContentType) => {
     setDialogContent(type);
     setDialogOpen(true);
@@ -150,6 +87,41 @@ export function SalarySummary({ employeeId, hireDate }: SalarySummaryProps) {
     });
   };
 
+  // Organizar deducciones por tipo
+  const deductionsByType = useMemo<DeductionsByType>(() => {
+    if (!payroll?.deductions) return {};
+
+    const deductions: DeductionsByType = {};
+
+    payroll.deductions.forEach((deduction) => {
+      if (!deductions[deduction.type]) {
+        deductions[deduction.type] = [];
+      }
+      deductions[deduction.type].push(deduction);
+    });
+
+    return deductions;
+  }, [payroll?.deductions]);
+
+  // Calcular totales de deducciones por tipo
+  const deductionTotals = useMemo(() => {
+    return Object.entries(deductionsByType).reduce(
+      (acc, [type, deductions]) => {
+        acc[type] = deductions.reduce((sum, d) => sum + d.totalDeduction, 0);
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+  }, [deductionsByType]);
+
+  const getDeductionLabel = (type: string): string => {
+    const labels: Record<string, string> = {
+      PERMISSION: 'Permisos',
+      ABSENCE: 'Faltas',
+    };
+    return labels[type] || type;
+  };
+
   const renderDialogContent = useMemo(() => {
     switch (dialogContent) {
       case 'BASE_SALARY':
@@ -160,8 +132,7 @@ export function SalarySummary({ employeeId, hireDate }: SalarySummaryProps) {
           />
         );
       case 'DEDUCTION':
-        // return <DeductionForm onSubmit={() => {}} />;
-        return null; // Placeholder until DeductionForm is implemented
+        return null;
       default:
         return null;
     }
@@ -246,18 +217,16 @@ export function SalarySummary({ employeeId, hireDate }: SalarySummaryProps) {
         {renderDialogContent}
       </ReusableDialog>
 
-      <div className="flex justify-between">
-        <div>
-          <span className="text-xl font-bold">{SalarySummaryTexts.title}</span>
-        </div>
-        <section className="flex gap-4">
+      <div className="flex justify-between items-center">
+        <span className="text-xl font-bold">{SalarySummaryTexts.title}</span>
+        <div className="flex gap-4">
           <Button
             className="w-60"
             variant="outline"
             onClick={() => handleOpen('BASE_SALARY')}
             disabled={!baseSalary}
           >
-            <Plus />
+            <Plus className="h-4 w-4" />
             <span>Actualizar Salario Base</span>
           </Button>
           <Button
@@ -265,90 +234,100 @@ export function SalarySummary({ employeeId, hireDate }: SalarySummaryProps) {
             onClick={() => handleOpen('DEDUCTION')}
             disabled={!baseSalary}
           >
-            <BanknoteArrowDown />
+            <BanknoteArrowDown className="h-4 w-4" />
             <span>{SalarySummaryTexts.addDeduction}</span>
           </Button>
-        </section>
+        </div>
       </div>
 
-      {/* Detalle */}
-      {baseSalary && (
+      {/* Detalle de cálculo */}
+      {baseSalary && payroll && (
         <section className="flex flex-col gap-2 rounded-xl border p-4">
           <span className="text-lg font-semibold">Detalle de cálculo</span>
           <Separator />
 
           {/* Ingresos */}
-          <div className="flex justify-between text-sm">
-            <span>Salario base</span>
-            <span>{formatCurrency(baseSalary.amount)}</span>
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Salario base</span>
+              <span className="font-medium">
+                {formatCurrency(payroll.baseSalary)}
+              </span>
+            </div>
+
+            <div className="flex justify-between text-sm">
+              <span>Dias trabajados</span>
+              <span className="font-medium">{payroll.workedDays}</span>
+            </div>
+
+            <div className="flex justify-between text-sm">
+              <span>Ganancia básica</span>
+              <span className="font-medium">
+                {formatCurrency(payroll.basicEarnings)}
+              </span>
+            </div>
+
+            {payroll.seniorityBonus > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>
+                  Bono de Antigüedad ({payroll.seniorityYears} años ×{' '}
+                  {(payroll.seniorityIncreasePercentage * 100).toFixed(0)}%)
+                </span>
+                <span className="font-medium">
+                  {formatCurrency(payroll.seniorityBonus)}
+                </span>
+              </div>
+            )}
           </div>
 
-          <div className="flex justify-between text-sm">
-            <span>Bono de Antigüedad ({yearsWorked} años × 5%)</span>
-            <span>{formatCurrency(seniorityBonus)}</span>
-          </div>
-
-          {/* Deducción de Gestora */}
+          {/* Deducción de AFP */}
           <Separator className="my-2" />
           <span className="text-sm font-medium text-red-600">
             Deducciones Obligatorias
           </span>
 
           <div className="flex justify-between text-sm">
-            <span className="text-red-600">Gestora (12.71%)</span>
             <span className="text-red-600">
-              -{formatCurrency(gestionDeduction)}
+              AFP ({(payroll.deductionAfpPercentage * 100).toFixed(2)}%)
+            </span>
+            <span className="text-red-600 font-medium">
+              -{formatCurrency(payroll.deductionAfp)}
             </span>
           </div>
 
-          {/* Deducciones */}
-          {totalDeductions > 0 && (
+          {/* Otras deducciones */}
+          {payroll.totalDeductions > 0 && (
             <>
               <Separator className="my-2" />
               <span className="text-sm font-medium text-red-600">
                 Otras Deducciones
               </span>
 
-              {totalPermissions > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-red-600">
-                    Permisos ({permissions.length})
-                  </span>
-                  <span className="text-red-600">
-                    -{formatCurrency(totalPermissions)}
-                  </span>
-                </div>
-              )}
+              <div className="space-y-2">
+                {Object.entries(deductionsByType).map(([type, deductions]) => {
+                  const total = deductionTotals[type];
+                  const qty = deductions.reduce((sum, d) => sum + d.qty, 0);
 
-              {totalAbsences > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-red-600">
-                    Faltas ({absences.length})
-                  </span>
-                  <span className="text-red-600">
-                    -{formatCurrency(totalAbsences)}
-                  </span>
-                </div>
-              )}
-
-              {totalOtherDeductions > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-red-600">
-                    Otras deducciones ({others.length})
-                  </span>
-                  <span className="text-red-600">
-                    -{formatCurrency(totalOtherDeductions)}
-                  </span>
-                </div>
-              )}
+                  return (
+                    <div key={type} className="flex justify-between text-sm">
+                      <span className="text-red-600">
+                        {getDeductionLabel(type)} ({qty})
+                      </span>
+                      <span className="text-red-600 font-medium">
+                        -{formatCurrency(total)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </>
           )}
 
           <Separator className="my-2" />
           <div className="flex justify-between font-bold text-base">
             <span>Salario Final</span>
-            <span className={salarioFinal < 0 ? 'text-red-600' : ''}>
-              {formatCurrency(salarioFinal)}
+            <span className={payroll.totalAmount < 0 ? 'text-red-600' : ''}>
+              {formatCurrency(payroll.totalAmount)}
             </span>
           </div>
         </section>

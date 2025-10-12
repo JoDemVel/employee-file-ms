@@ -1,58 +1,34 @@
+import { httpClient } from '../http-client';
 import type { SalaryEventCreateRequest } from '../interface/request/SalaryEventCreateRequest';
+import type { SalaryEventUpdateRequest } from '../interface/request/SalaryEventUpdateRequest';
 import type { SalaryEventResponse } from '../interface/response/SalaryEventResponse';
 
 export class SalaryEventService {
-  private readonly BASE_URL: string = 'http://localhost:8080/api/salary-events';
+  private readonly BASE_URL: string = '/salary-events';
 
-  // POST /api/salary-events - Create a new Salary Event
-  async createSalaryEvent(
-    salaryEventData: SalaryEventCreateRequest
-  ): Promise<SalaryEventResponse> {
-    const response = await fetch(this.BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(salaryEventData),
+  async createSalaryEvent(salaryCreateRequest: SalaryEventCreateRequest): Promise<SalaryEventResponse> {
+    return httpClient.post<SalaryEventResponse>(this.BASE_URL, salaryCreateRequest);
+  }
+
+  async getSalaryEventsByEmployeeId(employeeId: string, startDate?: string, endDate?: string): Promise<SalaryEventResponse[]> {
+    const params = new URLSearchParams({
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to create salary event');
-    }
-
-    return response.json();
+    const url = `${this.BASE_URL}/employees/${employeeId}${params.toString() ? `?${params}` : ''}`;
+    return httpClient.get<SalaryEventResponse[]>(url);
   }
 
-  // GET /api/salary-events/employee/{employeeId} - Get salary events by employee ID
-  async getSalaryEventsByEmployee(
-    employeeId: string
-  ): Promise<SalaryEventResponse[]> {
-    const response = await fetch(`${this.BASE_URL}/employee/${employeeId}`);
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch salary events by employee');
-    }
-
-    return response.json();
+  async getSalaryEvents(startDate?: string, endDate?: string): Promise<SalaryEventResponse[]> {
+    const params = new URLSearchParams({
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
+    });
+    const url = `${this.BASE_URL}${params.toString() ? `?${params}` : ''}`;
+    return httpClient.get<SalaryEventResponse[]>(url);
   }
 
-  // Helper methods para filtrar por tipo
-  async getBonusesByEmployee(
-    employeeId: string
-  ): Promise<SalaryEventResponse[]> {
-    const events = await this.getSalaryEventsByEmployee(employeeId);
-    return events.filter((event) => event.type === 'BONUS');
-  }
-
-  async getDeductionsByEmployee(
-    employeeId: string
-  ): Promise<SalaryEventResponse[]> {
-    const events = await this.getSalaryEventsByEmployee(employeeId);
-    return events.filter((event) => event.type === 'DEDUCTION');
-  }
-
-  async getAdvancesByEmployee(
-    employeeId: string
-  ): Promise<SalaryEventResponse[]> {
-    const events = await this.getSalaryEventsByEmployee(employeeId);
-    return events.filter((event) => event.type === 'ADVANCE');
+  async patchSalaryEvent(id: string, salaryEventUpdateRequest: Partial<SalaryEventUpdateRequest>): Promise<SalaryEventResponse> {
+    return httpClient.patch<SalaryEventResponse>(`${this.BASE_URL}/${id}`, salaryEventUpdateRequest);
   }
 }

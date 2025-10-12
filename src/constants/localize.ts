@@ -153,8 +153,8 @@ export const MemorandumTexts = {
 export const CompanyFormTexts = {
   name: 'Nombre de la Empresa',
   namePlaceholder: 'Techobol',
-  companyType: 'Tipo de Empresa',
-  companyTypePlaceholder: 'S.R.L.',
+  type: 'Tipo de Empresa',
+  typePlaceholder: 'S.R.L.',
 };
 
 export const FormsButtonTexts = {

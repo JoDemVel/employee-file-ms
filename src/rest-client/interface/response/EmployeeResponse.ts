@@ -1,7 +1,8 @@
-export interface Employee {
+export interface EmployeeResponse {
   id: string;
   firstName: string;
   lastName: string;
+  ci: string;
   email: string;
   phone: string;
   address: string;
@@ -10,11 +11,6 @@ export interface Employee {
   status: string;
   departmentId: string;
   departmentName: string;
-  // branchId: string;
-  // branchName?: string;
   positionId: string;
   positionName: string;
-  locationId: string;
-  locationName: string;
-  companyId: string;
 }

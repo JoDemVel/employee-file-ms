@@ -18,18 +18,17 @@ import {
   FormsValidationTexts,
 } from '@/constants/localize';
 import { LoaderCircle } from 'lucide-react';
-import { addCompany } from '@/app/shared/data/mockCompanies';
-import type { Company } from '@/app/shared/interfaces/company';
+import type { CompanyCreateRequest } from '@/rest-client/interface/request/CompanyCreateRequest';
 
 const formSchema = z.object({
   name: z.string().min(1, FormsValidationTexts.required),
-  companyType: z.string().min(1, FormsValidationTexts.required),
+  type: z.string().min(1, FormsValidationTexts.required),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 interface CompanyFormProps {
-  onSave: (data: Company, isCreating: boolean) => void;
+  onSave: (data: CompanyCreateRequest, isCreating: boolean) => void;
 }
 
 export function CompanyForm({ onSave }: CompanyFormProps) {
@@ -39,22 +38,15 @@ export function CompanyForm({ onSave }: CompanyFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      companyType: '',
+      type: '',
     },
   });
 
   function onSubmit(data: FormValues) {
     setSubmitting(true);
-
-    addCompany(data).then((res: Company) => {
-      form.reset();
-      onSave(res, true);
-    });
-
-    setTimeout(() => {
-      setSubmitting(false);
-      form.reset();
-    }, 1000);
+    onSave(data, true);
+    setSubmitting(false);
+    form.reset();
   }
 
   return (
@@ -82,13 +74,13 @@ export function CompanyForm({ onSave }: CompanyFormProps) {
 
         <FormField
           control={form.control}
-          name="companyType"
+          name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{CompanyFormTexts.companyType}</FormLabel>
+              <FormLabel>{CompanyFormTexts.type}</FormLabel>
               <FormControl>
                 <Input
-                  placeholder={CompanyFormTexts.companyTypePlaceholder}
+                  placeholder={CompanyFormTexts.typePlaceholder}
                   {...field}
                 />
               </FormControl>

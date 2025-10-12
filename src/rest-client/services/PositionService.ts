@@ -1,44 +1,20 @@
-import type { Position } from "../interface/Position";
+import { httpClient } from "../http-client";
 import type { PositionCreateRequest } from "../interface/request/PositionCreateRequest";
+import type { PositionUpdateRequest } from "../interface/request/PositionUpdateRequest";
+import type { PositionResponse } from "../interface/response/PositionResponse";
 
 export class PositionService {
-  private readonly BASE_URL: string = 'http://localhost:8080/api/positions';
+  private readonly BASE_URL: string = '/positions';
 
-  async createPosition(positionData: PositionCreateRequest): Promise<Position> {
-    const response = await fetch(this.BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(positionData),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to create position');
-    }
-    
-    return response.json();
+  async createPosition(positionCreateRequest: PositionCreateRequest): Promise<PositionResponse> {
+    return httpClient.post<PositionResponse>(this.BASE_URL, positionCreateRequest);
   }
 
-  async getPositionsByCompany(companyId: string): Promise<Position[]> {
-    const response = await fetch(`${this.BASE_URL}/company/${companyId}`);
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch positions by company');
-    }
-    
-    return response.json();
+  async getPositions(): Promise<PositionResponse[]> {
+    return httpClient.get<PositionResponse[]>(this.BASE_URL);
   }
 
-  async updatePosition(id: string, positionData: Partial<Position>): Promise<Position> {
-    const response = await fetch(`${this.BASE_URL}/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(positionData),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to update position');
-    }
-    
-    return response.json();
+  async patchPosition(id: string, positionUpdateRequest: Partial<PositionUpdateRequest>): Promise<PositionResponse> {
+    return httpClient.patch<PositionResponse>(`${this.BASE_URL}/${id}`, positionUpdateRequest);
   }
 }

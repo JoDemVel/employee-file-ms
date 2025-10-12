@@ -1,9 +1,9 @@
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
 import { useSidebar } from '@/components/ui/sidebar';
-import type { Company } from '@/rest-client/interface/Company';
+import type { CompanyResponse } from '@/rest-client/interface/response/CompanyResponse';
 import { useEffect, useState } from 'react';
 
-export const useCompanySwitcher = (companies: Company[]) => {
+export const useCompanySwitcher = (companies: CompanyResponse[]) => {
   const { isMobile } = useSidebar();
   const [activeTeam, setActiveTeam] = useState(companies[0]);
 
@@ -16,9 +16,10 @@ export const useCompanySwitcher = (companies: Company[]) => {
         setActiveTeam(companies[0]);
         return;
       }
-      setActiveTeam(
-        companies.find((team) => team.id === companyId) || companies[0]
-      );
+      const company =
+        companies.find((team) => team.id === companyId) || companies[0];
+      setActiveTeam(company);
+      localStorage.setItem('company_id', company.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, companies]);

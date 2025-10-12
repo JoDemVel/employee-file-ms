@@ -1,10 +1,10 @@
-import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
-import type { ApiError, ApiResponse, RequestConfig } from './types/api.types';
+import axios, { type AxiosInstance } from 'axios';
+import type { ApiError, RequestConfig } from './types/api.types';
 
 class HttpClient {
   private instance: AxiosInstance;
 
-  constructor(baseURL: string = process.env.REACT_APP_API_URL || 'http://localhost:3000/api') {
+  constructor(baseURL: string = 'http://localhost:8080/api') {
     this.instance = axios.create({
       baseURL,
       timeout: 10000,
@@ -23,22 +23,38 @@ class HttpClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+
+        const companyId = localStorage.getItem('company_id');
+
+        if (companyId) {
+          config.headers['X-Company-Id'] = companyId;
+        }
+
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => {
+        console.error('Request Interceptor Error:', error);
+        return Promise.reject(error);
+      }
     );
 
     this.instance.interceptors.response.use(
-      (response: AxiosResponse) => response,
+      (response) => {
+        return response;
+      },
       (error) => {
         const apiError: ApiError = {
-          message: error.response?.data?.message || error.message || 'An unknown error occurred',
+          message:
+            error.response?.data?.message ||
+            error.message ||
+            'An unknown error occurred',
           status: error.response?.status,
           errors: error.response?.data?.errors,
         };
 
         if (error.response?.status === 401) {
           localStorage.removeItem('auth_token');
+          localStorage.removeItem('company_id');
           window.location.href = '/login';
         }
 
@@ -48,41 +64,53 @@ class HttpClient {
   }
 
   async get<T>(url: string, config?: RequestConfig): Promise<T> {
-    const response = await this.instance.get<ApiResponse<T>>(url, config);
-    if (response.data && typeof response.data.data !== 'undefined') {
-      return response.data.data as T;
+    const response = await this.instance.get<T>(url, config);
+    if (response.data && typeof response.data !== 'undefined') {
+      return response.data as T;
     }
     throw new Error('Response data is missing');
   }
 
-  async post<T, D = unknown>(url: string, data?: D, config?: RequestConfig): Promise<T> {
-    const response = await this.instance.post<ApiResponse<T>>(url, data, config);
-    if (typeof response.data.data !== 'undefined') {
-      return response.data.data as T;
+  async post<T, D = unknown>(
+    url: string,
+    data?: D,
+    config?: RequestConfig
+  ): Promise<T> {
+    const response = await this.instance.post<T>(url, data, config);
+    if (typeof response.data !== 'undefined') {
+      return response.data as T;
     }
     throw new Error('Response data is missing');
   }
 
-  async put<T, D = unknown>(url: string, data?: D, config?: RequestConfig): Promise<T> {
-    const response = await this.instance.put<ApiResponse<T>>(url, data, config);
-    if (typeof response.data.data !== 'undefined') {
-      return response.data.data as T;
+  async put<T, D = unknown>(
+    url: string,
+    data?: D,
+    config?: RequestConfig
+  ): Promise<T> {
+    const response = await this.instance.put<T>(url, data, config);
+    if (typeof response.data !== 'undefined') {
+      return response.data as T;
     }
     throw new Error('Response data is missing');
   }
 
-  async patch<T, D = unknown>(url: string, data?: D, config?: RequestConfig): Promise<T> {
-    const response = await this.instance.patch<ApiResponse<T>>(url, data, config);
-    if (typeof response.data.data !== 'undefined') {
-      return response.data.data as T;
+  async patch<T, D = unknown>(
+    url: string,
+    data?: D,
+    config?: RequestConfig
+  ): Promise<T> {
+    const response = await this.instance.patch<T>(url, data, config);
+    if (typeof response.data !== 'undefined') {
+      return response.data as T;
     }
     throw new Error('Response data is missing');
   }
 
   async delete<T>(url: string, config?: RequestConfig): Promise<T> {
-    const response = await this.instance.delete<ApiResponse<T>>(url, config);
-    if (typeof response.data.data !== 'undefined') {
-      return response.data.data as T;
+    const response = await this.instance.delete<T>(url, config);
+    if (typeof response.data !== 'undefined') {
+      return response.data as T;
     }
     throw new Error('Response data is missing');
   }

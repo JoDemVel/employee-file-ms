@@ -1,4 +1,4 @@
-export interface BaseSalaryResponse {
+export interface BranchResponse {
   id: string;
   employeeId: string;
   amount: number;

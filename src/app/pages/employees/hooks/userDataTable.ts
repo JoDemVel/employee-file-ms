@@ -77,15 +77,16 @@ export function useDataTable<T>({
           throw new Error('Company ID is required to fetch employees');
         }
 
-        const result = await employeeService.getEmployeesByCompany(companyId, {
-          page: pagination.pageIndex,
-          size: pagination.pageSize,
-        });
+        const result = await employeeService.getEmployeesByCompany(
+          pagination.pageIndex,
+          pagination.pageSize
+        );
 
         setData(result.content as T[]);
         setPageCount(result.page.totalPages);
       }
     } catch (err) {
+      console.error('Error fetching employee details:', err);
       setError(err instanceof Error ? err.message : ErrorTexts.genericError);
       setData([]);
       setPageCount(0);

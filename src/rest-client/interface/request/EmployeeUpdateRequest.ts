@@ -1,4 +1,4 @@
-export interface EmployeeCreateRequest {
+export interface EmployeeUpdateRequest {
   firstName: string;
   lastName: string;
   ci: string;

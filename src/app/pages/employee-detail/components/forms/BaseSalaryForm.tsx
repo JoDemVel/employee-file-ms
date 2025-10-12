@@ -26,21 +26,10 @@ const formSchema = z.object({
     .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
       message: 'El monto debe ser un número mayor a 0',
     }),
-  startDate: z
-    .string()
-    .min(1, 'La fecha de inicio es obligatoria')
-    .refine((date) => {
-      const parsedDate = new Date(date);
-      return !isNaN(parsedDate.getTime());
-    }, 'Fecha inválida'),
-  endDate: z
-    .string()
-    .optional()
-    .refine((date) => {
-      if (!date) return true;
-      const parsedDate = new Date(date);
-      return !isNaN(parsedDate.getTime());
-    }, 'Fecha inválida'),
+  startDate: z.string().refine((date) => {
+    const parsedDate = new Date(date);
+    return !isNaN(parsedDate.getTime());
+  }, 'Fecha inválida'),
 });
 
 type BaseSalaryFormValues = z.infer<typeof formSchema>;
@@ -57,8 +46,7 @@ export function BaseSalaryForm({ employeeId, onSave }: BaseSalaryFormProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: '',
-      startDate: '',
-      endDate: '',
+      startDate: new Date().toISOString().split('T')[0],
     },
   });
 
@@ -70,7 +58,6 @@ export function BaseSalaryForm({ employeeId, onSave }: BaseSalaryFormProps) {
         employeeId,
         amount: Number(values.amount),
         startDate: values.startDate,
-        endDate: values.endDate || undefined,
       });
 
       toast.success('Salario base creado', {
@@ -113,42 +100,6 @@ export function BaseSalaryForm({ employeeId, onSave }: BaseSalaryFormProps) {
                   step="0.01"
                   min="0"
                   placeholder="Ej: 5000.00"
-                  {...field}
-                  disabled={loading}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="startDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Fecha de inicio</FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
-                  {...field}
-                  disabled={loading}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="endDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Fecha de fin (opcional)</FormLabel>
-              <FormControl>
-                <Input
-                  type="date"
                   {...field}
                   disabled={loading}
                 />

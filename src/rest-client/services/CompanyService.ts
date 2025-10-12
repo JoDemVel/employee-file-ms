@@ -1,37 +1,20 @@
-import type { Company } from "../interface/Company";
+import { httpClient } from "../http-client";
+import type { CompanyCreateRequest } from "../interface/request/CompanyCreateRequest";
+import type { CompanyUpdateRequest } from "../interface/request/CompanyUpdateRequest";
+import type { CompanyResponse } from "../interface/response/CompanyResponse";
 
 export class CompanyService {
-  private readonly BASE_URL: string = 'http://localhost:8080/api/companies';
-  
-  async getCompanies(): Promise<Company[]> {
-    const response = await fetch(this.BASE_URL);
-    if (!response.ok) {
-      throw new Error('Failed to fetch companies');
-    }
-    return response.json();
+  private readonly BASE_URL: string = '/companies';
+
+  async getCompanies(): Promise<CompanyResponse[]> {
+    return httpClient.get<CompanyResponse[]>(this.BASE_URL);
   }
 
-  async createCompany(company: Partial<Company>): Promise<Company> {
-    const response = await fetch(this.BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(company),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to create company');
-    }
-    return response.json();
+  async createCompany(companyCreateRequest: Partial<CompanyCreateRequest>): Promise<CompanyResponse> {
+    return httpClient.post<CompanyResponse>(this.BASE_URL, companyCreateRequest);
   }
 
-  async updateCompany(id: string, company: Partial<Company>): Promise<Company> {
-    const response = await fetch(`${this.BASE_URL}/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(company),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to update company');
-    }
-    return response.json();
+  async patchCompany(id: string, companyUpdateRequest: Partial<CompanyUpdateRequest>): Promise<CompanyResponse> {
+    return httpClient.put<CompanyResponse>(`${this.BASE_URL}/${id}`, companyUpdateRequest);
   }
 }

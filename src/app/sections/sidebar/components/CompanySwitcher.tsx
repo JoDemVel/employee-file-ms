@@ -18,11 +18,12 @@ import { SidebarHeaderTexts } from '@/constants/localize';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { useState } from 'react';
 import { CompanyForm } from './CompanyForm';
-import type { Company } from '@/rest-client/interface/Company';
 import { CompanyService } from '@/rest-client/services/CompanyService';
+import type { CompanyResponse } from '@/rest-client/interface/response/CompanyResponse';
+import type { CompanyCreateRequest } from '@/rest-client/interface/request/CompanyCreateRequest';
 
 interface CompanyProps {
-  companies: Company[];
+  companies: CompanyResponse[];
 }
 
 export function CompanySwitcher({ companies }: CompanyProps) {
@@ -31,17 +32,17 @@ export function CompanySwitcher({ companies }: CompanyProps) {
   const [openForm, setOpenForm] = useState(false);
 
   const handleCompanyChange = async (
-    team: Company | Partial<Company>,
+    team: CompanyResponse | CompanyCreateRequest,
     isCreating = false
   ) => {
     try {
-      let finalCompany: Company;
+      let finalCompany: CompanyResponse;
 
       if (isCreating) {
         const companyService = new CompanyService();
         finalCompany = await companyService.createCompany(team);
       } else {
-        finalCompany = team as Company;
+        finalCompany = team as CompanyResponse;
       }
 
       setActiveTeam(finalCompany);
