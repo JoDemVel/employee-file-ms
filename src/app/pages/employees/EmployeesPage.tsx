@@ -7,8 +7,8 @@ import { SearchInput } from '@/app/shared/components/SearchInput';
 import { EmployeePageTexts } from '@/constants/localize';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { useState } from 'react';
-import UserForm from './UserForm';
-import type { Employee } from '@/rest-client/interface/Employee';
+import EmployeeForm from './EmployeeForm';
+import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 
 export default function EmployeesPage() {
   const {
@@ -22,13 +22,13 @@ export default function EmployeesPage() {
     setPagination,
     setSearchValue,
     refetch,
-  } = useDataTable<Employee>({
+  } = useDataTable<EmployeeResponse>({
     endpoint: '/api/employees',
     initialPageSize: 10,
   });
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const onSave = async (newEmployee: Employee) => {
+  const onSave = async (newEmployee: EmployeeResponse) => {
     console.log('New user saved:', newEmployee);
     setDialogOpen(false);
     setData([newEmployee, ...data]);
@@ -58,7 +58,7 @@ export default function EmployeesPage() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       >
-        <UserForm onSave={onSave} />
+        <EmployeeForm onSave={onSave} />
       </ReusableDialog>
       <div className="flex items-center justify-between mb-4">
         <div>

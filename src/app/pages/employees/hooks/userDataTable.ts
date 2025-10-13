@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { PaginationState, OnChangeFn } from '@tanstack/react-table';
-import type {
-  PaginationResponse,
-  TableFilters,
-} from '@/app/shared/interfaces/table';
+import type { TableFilters } from '@/app/shared/interfaces/table';
 import { ErrorTexts } from '@/constants/localize';
-import { fetchUsersWithPagination } from '../../../shared/data/mockUser';
-import type { User } from '@/app/shared/interfaces/user';
 import { useConfigStore } from '@/app/shared/stores/useConfigStore';
 import { EmployeeService } from '@/rest-client/services/EmployeeService';
 
@@ -63,21 +58,12 @@ export function useDataTable<T>({
     setError(null);
 
     try {
-      if (endpoint.includes('/users')) {
-        const result: PaginationResponse<User> = await fetchUsersWithPagination(
-          pagination.pageIndex + 1,
-          pagination.pageSize,
-          searchValue || '',
-          companyId || ''
-        );
-        setData(result.data as T[]);
-        setPageCount(result.totalPages);
-      } else if (endpoint.includes('/employees')) {
+      if (endpoint.includes('/employees')) {
         if (!companyId) {
           throw new Error('Company ID is required to fetch employees');
         }
 
-        const result = await employeeService.getEmployeesByCompany(
+        const result = await employeeService.getEmployees(
           pagination.pageIndex,
           pagination.pageSize
         );

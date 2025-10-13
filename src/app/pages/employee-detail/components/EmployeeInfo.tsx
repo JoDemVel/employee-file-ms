@@ -12,7 +12,7 @@ import {
   Phone,
   UserRound,
 } from 'lucide-react';
-import UserForm from '../../employees/UserForm';
+import EmployeeForm from '../../employees/EmployeeForm';
 import { useState } from 'react';
 import type { Employee } from '@/rest-client/interface/Employee';
 
@@ -34,7 +34,7 @@ export function EmployeeInfo({ user }: { user: Employee }) {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       >
-        <UserForm onSave={onSave} user={user} />
+        <EmployeeForm onSave={onSave} employee={user} />
       </ReusableDialog>
       <Card className="w-full">
         <CardContent>

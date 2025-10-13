@@ -7,6 +7,5 @@ export interface EmployeeUpdateRequest {
   address: string;
   birthDate: string;
   hireDate: string;
-  departmentId: string;
   positionId: string;
 }

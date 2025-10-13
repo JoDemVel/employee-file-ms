@@ -13,4 +13,6 @@ export interface EmployeeResponse {
   departmentName: string;
   positionId: string;
   positionName: string;
+  branchId: string;
+  branchName: string;
 }

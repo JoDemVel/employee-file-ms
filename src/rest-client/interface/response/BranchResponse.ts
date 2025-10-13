@@ -1,7 +1,8 @@
 export interface BranchResponse {
   id: string;
-  employeeId: string;
-  amount: number;
-  startDate: string;
-  endDate?: string;
+  name: string;
+  description: string;
+  location: string;
+  city: string;
+  country: string;
 }

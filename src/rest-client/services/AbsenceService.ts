@@ -11,9 +11,9 @@ export class AbsenceService {
   }
 
   async getAbsencesByEmployee(employeeId: string, startDate?: string, endDate?: string): Promise<AbsenceResponse[]> {
-    const params = new URLSearchParams({ 
-      ...(startDate && { startDate }), 
-      ...(endDate && { endDate }) 
+    const params = new URLSearchParams({
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate })
     });
     const url = `${this.BASE_URL}/employees/${employeeId}${params.toString() ? `?${params}` : ''}`;
     return httpClient.get<AbsenceResponse[]>(url);
