@@ -2,6 +2,7 @@ import { SidebarItemsTexts } from '@/constants/localize';
 import {
   Briefcase,
   Building,
+  Building2,
   DollarSign,
   Settings,
   UsersRound,
@@ -16,7 +17,7 @@ export const sidebarItems: SidebarItem[] = [
     title: SidebarItemsTexts.settings.title,
     url: '/config',
     icon: Settings,
-    disabled: true,
+    disabled: false,
   },
 ];
 
@@ -51,6 +52,13 @@ export const sidebarGroupItems: SidebarGroupItem[] = [
     url: '/salary',
     items: [],
     disabled: true,
+  },
+  {
+    title: SidebarItemsTexts.branch.title,
+    icon: Building2,
+    url: '/branch',
+    items: [],
+    disabled: false,
   },
   {
     title: SidebarItemsTexts.departments.title,

@@ -16,6 +16,9 @@ export const SidebarItemsTexts = {
   positions: {
     title: 'Posiciones',
   },
+  branch: {
+    title: 'Sucursales',
+  },
   settings: {
     title: 'Configuración',
   },

@@ -15,6 +15,6 @@ export class CompanyService {
   }
 
   async patchCompany(id: string, companyUpdateRequest: Partial<CompanyUpdateRequest>): Promise<CompanyResponse> {
-    return httpClient.put<CompanyResponse>(`${this.BASE_URL}/${id}`, companyUpdateRequest);
+    return httpClient.patch<CompanyResponse>(`${this.BASE_URL}/${id}`, companyUpdateRequest);
   }
 }

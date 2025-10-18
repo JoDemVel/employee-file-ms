@@ -32,7 +32,7 @@ export function NavSecondary({ items, ...props }: NavSecondaryProps) {
               >
                 <a href={item.url}>
                   <item.icon />
-                  <span>{item.title}</span>
+                  <span className="text-sm">{item.title}</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>

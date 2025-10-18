@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { useConfigStore } from '@/app/shared/stores/useConfigStore';
 import type { PositionResponse } from '@/rest-client/interface/response/PositionResponse';
 import type { DepartmentResponse } from '@/rest-client/interface/response/DepartmentResponse';
 

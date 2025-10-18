@@ -14,15 +14,15 @@ import {
 } from 'lucide-react';
 import EmployeeForm from '../../employees/EmployeeForm';
 import { useState } from 'react';
-import type { Employee } from '@/rest-client/interface/Employee';
+import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 
-export function EmployeeInfo({ user }: { user: Employee }) {
+export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
   const { firstName, lastName, positionName, departmentName, hireDate, email } =
-    user;
+    employee;
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const onSave = async (newUser: Employee) => {
-    console.log('New user saved:', newUser);
+  const onSave = async (newUser: EmployeeResponse) => {
+    console.log('Edit User saved:', newUser);
     setDialogOpen(false);
   };
 
@@ -33,8 +33,9 @@ export function EmployeeInfo({ user }: { user: Employee }) {
         description="Completa los detalles del empleado"
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        className="!max-w-[45rem]"
       >
-        <EmployeeForm onSave={onSave} employee={user} />
+        <EmployeeForm onSave={onSave} employee={employee} />
       </ReusableDialog>
       <Card className="w-full">
         <CardContent>
@@ -71,7 +72,7 @@ export function EmployeeInfo({ user }: { user: Employee }) {
               </span>
               <span className="flex items-center gap-2">
                 <Phone />
-                <span>{user.phone || EmployeeDetailsTexts.noPhone}</span>
+                <span>{employee.phone || EmployeeDetailsTexts.noPhone}</span>
               </span>
               <section className="flex items-center gap-2">
                 <Button variant="outline" onClick={() => setDialogOpen(true)}>

@@ -52,7 +52,7 @@ const formSchema = z.object({
   positionId: z.string().nonempty('Puesto requerido'),
 });
 
-type UserFormValues = z.infer<typeof formSchema>;
+type EmployeeFormValues = z.infer<typeof formSchema>;
 
 interface UserFormProps {
   onSave?: (newEmployee: EmployeeResponse) => void;
@@ -73,7 +73,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
   >(null);
   const [loading, setLoading] = useState(false);
 
-  const form = useForm<UserFormValues>({
+  const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       firstName: '',
@@ -137,7 +137,14 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
     }
   }, [employee, departments, form]);
 
-  const onSubmit = async (values: UserFormValues) => {
+  useEffect(() => {
+    if (employee && positions.length > 0) {
+      form.setValue('positionId', employee.positionId || '');
+      form.setValue('departmentId', employee.departmentId || '');
+    }
+  }, [employee, positions, form]);
+
+  const onSubmit = async (values: EmployeeFormValues) => {
     try {
       setLoading(true);
 
@@ -490,7 +497,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
           />
         </div>
 
-        <div className="flex gap-3 sticky bottom-0 bg-background pt-4 pb-2">
+        <div className="flex flex-row-reverse gap-3 sticky bottom-0 bg-background pt-4 pb-2">
           <Button
             type="submit"
             disabled={loading}

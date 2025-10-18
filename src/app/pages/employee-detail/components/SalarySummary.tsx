@@ -8,7 +8,7 @@ import type {
   PayrollDeductionResponse,
 } from '@/rest-client/interface/response/PayrollResponse';
 import { BaseSalaryService } from '@/rest-client/services/BaseSalaryService';
-import { BanknoteArrowDown, Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { BaseSalaryForm } from './forms/BaseSalaryForm';
@@ -176,14 +176,6 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
       <section className="flex flex-col gap-6 p-4">
         <div className="flex justify-between">
           <span className="text-xl font-bold">{SalarySummaryTexts.title}</span>
-          <Button
-            className="w-60"
-            variant="outline"
-            onClick={() => handleOpen('BASE_SALARY')}
-          >
-            <Plus />
-            <span>Crear Salario Base</span>
-          </Button>
         </div>
         <div className="text-center p-8 border rounded-xl">
           <p className="text-muted-foreground mb-4">
@@ -228,14 +220,6 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
           >
             <Plus className="h-4 w-4" />
             <span>Actualizar Salario Base</span>
-          </Button>
-          <Button
-            className="w-40"
-            onClick={() => handleOpen('DEDUCTION')}
-            disabled={!baseSalary}
-          >
-            <BanknoteArrowDown className="h-4 w-4" />
-            <span>{SalarySummaryTexts.addDeduction}</span>
           </Button>
         </div>
       </div>

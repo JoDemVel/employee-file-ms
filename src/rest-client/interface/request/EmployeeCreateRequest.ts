@@ -8,4 +8,5 @@ export interface EmployeeCreateRequest {
   birthDate: string;
   hireDate: string;
   positionId: string;
+  branchId: string;
 }

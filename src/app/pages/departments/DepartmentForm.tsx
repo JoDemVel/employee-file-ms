@@ -105,6 +105,7 @@ export default function DepartmentForm({ onSave }: DepartmentFormProps) {
                   placeholder="Descripción (opcional)"
                   {...field}
                   disabled={loading}
+                  className="resize-none"
                 />
               </FormControl>
               <FormMessage />

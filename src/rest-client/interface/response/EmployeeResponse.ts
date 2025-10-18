@@ -9,10 +9,18 @@ export interface EmployeeResponse {
   birthDate: string;
   hireDate: string;
   status: string;
+  emergencyContact: EmergencyContactResponse;
   departmentId: string;
   departmentName: string;
   positionId: string;
   positionName: string;
   branchId: string;
   branchName: string;
+}
+
+export interface EmergencyContactResponse {
+  fullName: string;
+  relation: string;
+  phone: string;
+  address: string;
 }
