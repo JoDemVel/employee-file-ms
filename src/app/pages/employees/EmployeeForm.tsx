@@ -45,8 +45,11 @@ const formSchema = z.object({
   email: z.string().email('Correo inválido'),
   phone: z.string().min(7, 'Teléfono requerido'),
   address: z.string().min(5, 'Dirección requerida'),
-  birthDate: z.string().nonempty('Fecha de nacimiento requerida'),
-  hireDate: z.string().nonempty('Fecha de contratación requerida'),
+  birthDate: z.date({ error: 'Fecha de nacimiento requerida' }),
+  hireDate: z.date({ error: 'Fecha de contratación requerida' }),
+  type: z.enum(['FULL_TIME', 'CONSULTANT'] as const, {
+    error: 'Tipo de empleado requerido',
+  }),
   branchId: z.string().nonempty('Sucursal requerida'),
   departmentId: z.string().nonempty('Departamento requerido'),
   positionId: z.string().nonempty('Puesto requerido'),
@@ -82,10 +85,11 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
       email: '',
       phone: '',
       address: '',
-      birthDate: '',
-      hireDate: new Date().toISOString().split('T')[0],
+      birthDate: new Date(),
+      hireDate: new Date(),
       branchId: '',
       positionId: '',
+      type: 'FULL_TIME',
     },
   });
 
@@ -117,6 +121,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         branchId,
         departmentId,
         positionId,
+        type,
       } = employee;
 
       form.reset({
@@ -126,10 +131,12 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
         email,
         phone,
         address: address || '',
-        birthDate: birthDate?.split('T')[0] || '',
-        hireDate: hireDate?.split('T')[0] || '',
+        birthDate: birthDate ? new Date(birthDate) : new Date(),
+        hireDate: hireDate ? new Date(hireDate) : new Date(),
         branchId: branchId || '',
+        departmentId: departmentId || '',
         positionId,
+        type: (type as EmployeeFormValues['type']) || 'FULL_TIME',
       });
 
       const selectedDept = departments.find((d) => d.id === departmentId);
@@ -277,9 +284,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
                           field.value ? new Date(field.value) : undefined
                         }
                         captionLayout="dropdown"
-                        onSelect={(date) => {
-                          field.onChange(date?.toISOString().split('T')[0]);
-                        }}
+                        onSelect={(date) => field.onChange(date)}
                         disabled={(date) =>
                           date > new Date() || date < new Date('1900-01-01')
                         }
@@ -361,6 +366,32 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
           <h3 className="text-base font-semibold bg-background py-2 z-10">
             Información Laboral
           </h3>
+
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tipo de Empleado</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={loading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona tipo de empleado" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="FULL_TIME">Planta</SelectItem>
+                    <SelectItem value="CONSULTANT">Consultor</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
@@ -483,9 +514,7 @@ export default function UserForm({ onSave, employee }: UserFormProps) {
                       mode="single"
                       selected={field.value ? new Date(field.value) : undefined}
                       captionLayout="dropdown"
-                      onSelect={(date) => {
-                        field.onChange(date?.toISOString().split('T')[0]);
-                      }}
+                      onSelect={(date) => field.onChange(date)}
                       disabled={(date) => date > new Date()}
                       autoFocus
                     />

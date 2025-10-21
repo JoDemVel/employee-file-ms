@@ -12,7 +12,7 @@ export interface PayrollResponse {
   deductionAfp: number;
   deductions: PayrollDeductionResponse[];
   totalDeductions: number;
-  totalAmount: number;
+  netAmount: number;
 }
 
 export interface PayrollDeductionResponse {

@@ -136,7 +136,9 @@ export function AbsencePermissionSection({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingAbsence, setEditingAbsence] = useState<AbsenceResponse | null>(null);
+  const [editingAbsence, setEditingAbsence] = useState<AbsenceResponse | null>(
+    null
+  );
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
   const [monthlyAbsences, setMonthlyAbsences] = useState<
     Map<number, AbsenceResponse[] | null>
@@ -319,11 +321,7 @@ export function AbsencePermissionSection({
             </p>
           </div>
           {isEditable && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleEdit(event)}
-            >
+            <Button size="sm" variant="ghost" onClick={() => handleEdit(event)}>
               <Edit2 className="h-4 w-4" />
             </Button>
           )}
@@ -335,7 +333,7 @@ export function AbsencePermissionSection({
   // Determinar cuántos meses atrás mostrar
   const startMonthsAgo = isWithinFirstFiveDays() ? 0 : 1;
   const monthsToShow = Array.from(
-    { length: 6 },
+    { length: 12 },
     (_, i) => i + startMonthsAgo
   ).filter((m) => m > 0);
 
@@ -353,7 +351,9 @@ export function AbsencePermissionSection({
   return (
     <section className="flex flex-col gap-6 p-4">
       <ReusableDialog
-        title={editingAbsence ? 'Editar Permiso/Falta' : 'Registrar Permiso o Falta'}
+        title={
+          editingAbsence ? 'Editar Permiso/Falta' : 'Registrar Permiso o Falta'
+        }
         description={
           editingAbsence
             ? 'Modifica los datos del permiso o falta'

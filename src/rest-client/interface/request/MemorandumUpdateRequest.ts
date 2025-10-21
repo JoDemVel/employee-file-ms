@@ -1,6 +1,6 @@
 export interface MemorandumUpdateRequest {
   type?: string;
   description?: string;
-  memorandumDate?: string;
+  memorandumDate?: Date;
   isPositive?: boolean;
 }

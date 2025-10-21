@@ -51,26 +51,25 @@ type PermissionDuration =
 
 const absenceService = new AbsenceService();
 
-// Función para obtener el rango de fechas permitidas
-const getDateRange = () => {
-  const today = new Date();
-  const currentDay = today.getDate();
-  
-  // Si estamos en los primeros 5 días, permitir mes anterior
-  if (currentDay <= 5) {
-    // Primer día del mes anterior
-    const minDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    // Último día del mes actual
-    const maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    return { minDate, maxDate };
-  } else {
-    // Primer día del mes actual
-    const minDate = new Date(today.getFullYear(), today.getMonth(), 1);
-    // Último día del mes actual
-    const maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    return { minDate, maxDate };
-  }
-};
+// const getDateRange = () => {
+//   const today = new Date();
+//   const currentDay = today.getDate();
+
+//   // Si estamos en los primeros 5 días, permitir mes anterior
+//   if (currentDay <= 5) {
+//     // Primer día del mes anterior
+//     const minDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+//     // Último día del mes actual
+//     const maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+//     return { minDate, maxDate };
+//   } else {
+//     // Primer día del mes actual
+//     const minDate = new Date(today.getFullYear(), today.getMonth(), 1);
+//     // Último día del mes actual
+//     const maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+//     return { minDate, maxDate };
+//   }
+// };
 
 const formSchema = z.object({
   type: z.nativeEnum(AbsencePermissionType),
@@ -101,22 +100,22 @@ const formatCurrency = (value: number) =>
 // Función para extraer información del absence existente
 const parseAbsenceData = (absence: AbsenceResponse) => {
   const description = absence.description || '';
-  
+
   // Determinar tipo
   const type = description.toLowerCase().includes('falta')
     ? AbsencePermissionType.ABSENCE
     : AbsencePermissionType.PERMISSION;
-  
+
   // Determinar duración
   const duration = description.toLowerCase().includes('medio')
     ? PermissionDuration.HALF_DAY
     : PermissionDuration.FULL_DAY;
-  
+
   // Extraer reason y description adicional si existen
   const parts = description.split(' - ');
   const reason = parts[1] || '';
   const additionalDesc = parts[2] || '';
-  
+
   return { type, duration, reason, additionalDesc };
 };
 
@@ -128,7 +127,7 @@ export function AbsencePermissionForm({
 }: AbsencePermissionFormProps) {
   const [loading, setLoading] = useState(false);
   const isEditing = !!absence;
-  const { minDate, maxDate } = getDateRange();
+  // const { minDate, maxDate } = getDateRange();
 
   const form = useForm<AbsencePermissionFormValues>({
     resolver: zodResolver(formSchema),
@@ -143,7 +142,8 @@ export function AbsencePermissionForm({
 
   useEffect(() => {
     if (absence) {
-      const { type, duration, reason, additionalDesc } = parseAbsenceData(absence);
+      const { type, duration, reason, additionalDesc } =
+        parseAbsenceData(absence);
       form.reset({
         type,
         date: new Date(absence.date),
@@ -302,8 +302,38 @@ export function AbsencePermissionForm({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) => date < minDate || date > maxDate}
-                    initialFocus
+                    disabled={(date) => {
+                      const today = new Date();
+
+                      if (date > today) return true;
+
+                      if (date < new Date('1900-01-01')) return true;
+
+                      const currentMonth = today.getMonth();
+                      const currentYear = today.getFullYear();
+
+                      const dateMonth = date.getMonth();
+                      const dateYear = date.getFullYear();
+
+                      const isSameYear = dateYear === currentYear;
+
+                      const isEarlyInMonth = today.getDate() <= 5;
+
+                      const isPreviousMonth =
+                        (isSameYear && dateMonth === currentMonth - 1) ||
+                        (currentMonth === 0 &&
+                          dateYear === currentYear - 1 &&
+                          dateMonth === 11);
+
+                      const isOlderThanPreviousMonth =
+                        dateYear < currentYear ||
+                        (isSameYear && dateMonth < currentMonth - 1);
+
+                      if (isOlderThanPreviousMonth) return true;
+                      if (isPreviousMonth && !isEarlyInMonth) return true;
+
+                      return false;
+                    }}
                   />
                 </PopoverContent>
               </Popover>
@@ -371,6 +401,7 @@ export function AbsencePermissionForm({
                   placeholder="Detalles adicionales..."
                   {...field}
                   disabled={loading}
+                  className='resize-none'
                 />
               </FormControl>
               <FormMessage />

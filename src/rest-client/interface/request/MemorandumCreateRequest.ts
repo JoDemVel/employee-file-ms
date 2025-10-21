@@ -2,6 +2,6 @@ export interface MemorandumCreateRequest {
   employeeId: string;
   type: string;
   description: string;
-  memorandumDate: string;
+  memorandumDate: Date;
   isPositive: boolean;
 }

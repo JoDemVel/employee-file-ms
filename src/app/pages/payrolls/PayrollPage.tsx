@@ -6,67 +6,168 @@ import { SearchInput } from '@/app/shared/components/SearchInput';
 import { PayrollService } from '@/rest-client/services/PayrollService';
 import type { PayrollEmployeeResponse } from '@/rest-client/interface/response/PayrollResponse';
 import type { PaginationState } from '@tanstack/react-table';
-import { columns } from './columns';
+import type { PaymentEmployeeResponse } from '@/rest-client/interface/response/PaymentResponse';
+import { PaymentService } from '@/rest-client/services/PaymentService';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { currentColumns, historicalColumns } from './columns';
 
 const payrollService = new PayrollService();
+const paymentService = new PaymentService();
+
+const formatMonthYear = (date: Date) => {
+  return date.toLocaleDateString('es-BO', {
+    year: 'numeric',
+    month: 'long',
+  });
+};
+
+const getPeriodInfo = (monthsAgo: number) => {
+  const now = new Date();
+  const targetDate = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
+  const year = targetDate.getFullYear();
+  const month = targetDate.getMonth() + 1;
+  const period = year * 100 + month;
+
+  return {
+    period,
+    label: formatMonthYear(targetDate),
+  };
+};
+
+// Generar lista de períodos (últimos 12 meses)
+const generatePeriods = () => {
+  return Array.from({ length: 12 }, (_, i) => {
+    const info = getPeriodInfo(i + 1);
+    return {
+      value: info.period.toString(),
+      label: info.label,
+      monthsAgo: i + 1,
+    };
+  });
+};
 
 export default function PayrollsPage() {
-  const [data, setData] = useState<PayrollEmployeeResponse[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchValue, setSearchValue] = useState('');
-  const [pageCount, setPageCount] = useState(0);
-  const [pagination, setPagination] = useState<PaginationState>({
+  // Estados para nóminas actuales
+  const [currentData, setCurrentData] = useState<PayrollEmployeeResponse[]>([]);
+  const [currentLoading, setCurrentLoading] = useState(false);
+  const [currentError, setCurrentError] = useState<string | null>(null);
+  const [currentSearchValue, setCurrentSearchValue] = useState('');
+  const [currentPageCount, setCurrentPageCount] = useState(0);
+  const [currentPagination, setCurrentPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   });
 
-  const fetchPayrolls = async () => {
-    setLoading(true);
-    setError(null);
+  // Estados para pagos históricos
+  const [historicalData, setHistoricalData] = useState<
+    PaymentEmployeeResponse[]
+  >([]);
+  const [historicalLoading, setHistoricalLoading] = useState(false);
+  const [historicalError, setHistoricalError] = useState<string | null>(null);
+  const [historicalSearchValue, setHistoricalSearchValue] = useState('');
+  const [historicalPageCount, setHistoricalPageCount] = useState(0);
+  const [historicalPagination, setHistoricalPagination] =
+    useState<PaginationState>({
+      pageIndex: 0,
+      pageSize: 10,
+    });
+  const [selectedPeriod, setSelectedPeriod] = useState<string>(
+    getPeriodInfo(1).period.toString()
+  );
+
+  const periods = generatePeriods();
+
+  // Fetch nóminas actuales
+  const fetchCurrentPayrolls = async () => {
+    setCurrentLoading(true);
+    setCurrentError(null);
 
     try {
       const result = await payrollService.getPayrolls(
-        pagination.pageIndex,
-        pagination.pageSize
+        currentPagination.pageIndex,
+        currentPagination.pageSize
       );
 
-      setData(result.content);
-      setPageCount(result.page.totalPages);
+      setCurrentData(result.content);
+      setCurrentPageCount(result.page.totalPages);
     } catch (err) {
       console.error('Error fetching payrolls:', err);
-      setError(
+      setCurrentError(
         err instanceof Error ? err.message : 'Error al cargar las nóminas'
       );
-      setData([]);
-      setPageCount(0);
+      setCurrentData([]);
+      setCurrentPageCount(0);
     } finally {
-      setLoading(false);
+      setCurrentLoading(false);
+    }
+  };
+
+  // Fetch pagos históricos
+  const fetchHistoricalPayments = async () => {
+    setHistoricalLoading(true);
+    setHistoricalError(null);
+
+    try {
+      const result = await paymentService.getPaymentsByPeriod(
+        parseInt(selectedPeriod),
+        historicalPagination.pageIndex,
+        historicalPagination.pageSize
+      );
+
+      setHistoricalData(result.content);
+      setHistoricalPageCount(result.page.totalPages);
+    } catch (err) {
+      console.error('Error fetching historical payments:', err);
+      setHistoricalError(
+        err instanceof Error
+          ? err.message
+          : 'Error al cargar los pagos históricos'
+      );
+      setHistoricalData([]);
+      setHistoricalPageCount(0);
+    } finally {
+      setHistoricalLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPayrolls();
-  }, [pagination.pageIndex, pagination.pageSize, searchValue]);
+    fetchCurrentPayrolls();
+  }, [
+    currentPagination.pageIndex,
+    currentPagination.pageSize,
+    currentSearchValue,
+  ]);
 
-  const handleSearchChange = (search: string) => {
-    setSearchValue(search);
-    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  useEffect(() => {
+    fetchHistoricalPayments();
+  }, [
+    historicalPagination.pageIndex,
+    historicalPagination.pageSize,
+    selectedPeriod,
+    historicalSearchValue,
+  ]);
+
+  const handleCurrentSearchChange = (search: string) => {
+    setCurrentSearchValue(search);
+    setCurrentPagination((prev) => ({ ...prev, pageIndex: 0 }));
   };
 
-  if (error) {
-    return (
-      <div className="container mx-auto">
-        <div className="text-center">
-          <p className="text-destructive">Error: {error}</p>
-          <Button onClick={fetchPayrolls} className="mt-4">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const handleHistoricalSearchChange = (search: string) => {
+    setHistoricalSearchValue(search);
+    setHistoricalPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
+
+  const handlePeriodChange = (value: string) => {
+    setSelectedPeriod(value);
+    setHistoricalPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  };
 
   return (
     <div className="container mx-auto">
@@ -79,29 +180,104 @@ export default function PayrollsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col space-y-4">
-        <SearchInput
-          value={searchValue}
-          onChange={handleSearchChange}
-          placeholder="Buscar por nombre, CI o email..."
-          disabled={loading}
-          className="w-full sm:max-w-sm"
-        />
+      <Tabs defaultValue="current" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="current">Mes Actual</TabsTrigger>
+          <TabsTrigger value="historical">Meses Anteriores</TabsTrigger>
+        </TabsList>
 
-        <DataTable
-          columns={columns}
-          data={data}
-          pageCount={pageCount}
-          pageIndex={pagination.pageIndex}
-          pageSize={pagination.pageSize}
-          onPaginationChange={setPagination}
-          loading={loading}
-          showPagination={true}
-          pageSizeOptions={[5, 10, 20, 50]}
-          noResultsMessage="No se encontraron nóminas"
-          loadingMessage="Cargando nóminas..."
-        />
-      </div>
+        {/* Mes Actual */}
+        <TabsContent value="current" className="space-y-4">
+          {currentError ? (
+            <div className="text-center p-8 border rounded-xl">
+              <p className="text-destructive mb-4">Error: {currentError}</p>
+              <Button onClick={fetchCurrentPayrolls}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reintentar
+              </Button>
+            </div>
+          ) : (
+            <>
+              <SearchInput
+                value={currentSearchValue}
+                onChange={handleCurrentSearchChange}
+                placeholder="Buscar por nombre, CI o email..."
+                disabled={currentLoading}
+                className="w-full sm:max-w-sm"
+              />
+
+              <DataTable
+                columns={currentColumns}
+                data={currentData}
+                pageCount={currentPageCount}
+                pageIndex={currentPagination.pageIndex}
+                pageSize={currentPagination.pageSize}
+                onPaginationChange={setCurrentPagination}
+                loading={currentLoading}
+                showPagination={true}
+                pageSizeOptions={[5, 10, 20, 50]}
+                noResultsMessage="No se encontraron nóminas"
+                loadingMessage="Cargando nóminas..."
+              />
+            </>
+          )}
+        </TabsContent>
+
+        {/* Meses Anteriores */}
+        <TabsContent value="historical" className="space-y-4">
+          {historicalError ? (
+            <div className="text-center p-8 border rounded-xl">
+              <p className="text-destructive mb-4">Error: {historicalError}</p>
+              <Button onClick={fetchHistoricalPayments}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reintentar
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Select
+                  value={selectedPeriod}
+                  onValueChange={handlePeriodChange}
+                >
+                  <SelectTrigger className="w-full sm:w-[280px]">
+                    <SelectValue placeholder="Seleccionar período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {periods.map((period) => (
+                      <SelectItem key={period.value} value={period.value}>
+                        {period.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <SearchInput
+                  value={historicalSearchValue}
+                  onChange={handleHistoricalSearchChange}
+                  placeholder="Buscar por nombre, CI o email..."
+                  disabled={historicalLoading}
+                  className="w-full sm:max-w-sm"
+                />
+              </div>
+
+              <DataTable
+                columns={historicalColumns}
+                data={historicalData}
+                pageCount={historicalPageCount}
+                pageIndex={historicalPagination.pageIndex}
+                pageSize={historicalPagination.pageSize}
+                onPaginationChange={setHistoricalPagination}
+                loading={historicalLoading}
+                showPagination={true}
+                pageSizeOptions={[5, 10, 20, 50]}
+                noResultsMessage="No se encontraron pagos para este período"
+                loadingMessage="Cargando pagos..."
+              />
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

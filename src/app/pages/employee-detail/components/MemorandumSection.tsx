@@ -202,7 +202,9 @@ export function MemorandumSection({
               >
                 {memorandum.type}
               </Badge>
-              <Badge variant="outline">{formatDate(memorandum.memorandumDate)}</Badge>
+              <Badge variant="outline">
+                {formatDate(memorandum.memorandumDate)}
+              </Badge>
             </div>
             <p className={`text-sm font-medium ${iconColor} mb-2`}>
               {memorandum.isPositive ? 'Positivo' : 'Negativo'}
@@ -239,9 +241,7 @@ export function MemorandumSection({
   return (
     <section className="flex flex-col gap-6 p-4">
       <ReusableDialog
-        title={
-          editingMemorandum ? 'Editar Memorándum' : 'Registrar Memorándum'
-        }
+        title={editingMemorandum ? 'Editar Memorándum' : 'Registrar Memorándum'}
         description={
           editingMemorandum
             ? 'Modifica los datos del memorándum'
@@ -342,7 +342,7 @@ export function MemorandumSection({
       <div className="flex flex-col gap-4">
         <span className="text-lg font-semibold">Meses anteriores</span>
 
-        {[1, 2, 3, 4, 5, 6].map((monthsAgo) => {
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
           const { label } = getMonthRange(monthsAgo);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);

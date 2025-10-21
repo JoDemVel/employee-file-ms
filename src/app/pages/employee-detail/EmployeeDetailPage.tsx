@@ -10,7 +10,7 @@ import { SalarySummary } from './components/SalarySummary';
 import { AbsencePermissionSection } from './components/AbsencePermissionSection';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 import { AdvanceSection } from './components/AdvanceSection';
-import { VacationSection } from './components/forms/VacationSection';
+import { VacationSection } from './components/VacationSection';
 import { MemorandumSection } from './components/MemorandumSection';
 
 const employeeService = new (

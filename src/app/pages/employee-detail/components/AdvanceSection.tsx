@@ -258,7 +258,7 @@ export function AdvanceSection({
       <div className="flex flex-col gap-4">
         <span className="text-lg font-semibold">Meses anteriores</span>
 
-        {[1, 2, 3, 4, 5, 6].map((monthsAgo) => {
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
           const { label } = getMonthRange(monthsAgo);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);

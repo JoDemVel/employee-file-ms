@@ -10,6 +10,7 @@ export interface EmployeeResponse {
   hireDate: string;
   status: string;
   emergencyContact: EmergencyContactResponse;
+  type: string;
   departmentId: string;
   departmentName: string;
   positionId: string;

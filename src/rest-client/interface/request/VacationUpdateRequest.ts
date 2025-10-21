@@ -1,5 +1,5 @@
 export interface VacationUpdateRequest {
-  startDate?: string;
-  endDate?: string;
+  startDate?: Date;
+  endDate?: Date;
   notes?: string;
 }

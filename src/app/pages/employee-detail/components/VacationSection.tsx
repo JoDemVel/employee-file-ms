@@ -15,7 +15,7 @@ import {
 import { VacationService } from '@/rest-client/services/VacationService';
 import type { VacationResponse } from '@/rest-client/interface/response/VacationResponse';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
-import { VacationForm } from './VacationForm';
+import { VacationForm } from './forms/VacationForm';
 
 type VacationSectionProps = {
   employeeId: string;
@@ -321,7 +321,7 @@ export function VacationSection({
       <div className="flex flex-col gap-4">
         <span className="text-lg font-semibold">Meses anteriores</span>
 
-        {[1, 2, 3, 4, 5, 6].map((monthsAgo) => {
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((monthsAgo) => {
           const { label } = getMonthRange(monthsAgo);
           const isExpanded = expandedMonths.has(monthsAgo);
           const isLoading = loadingMonths.has(monthsAgo);

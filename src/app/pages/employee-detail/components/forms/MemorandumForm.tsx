@@ -11,7 +11,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,22 +22,27 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, CalendarIcon } from 'lucide-react';
 import { MemorandumService } from '@/rest-client/services/MemorandumService';
 import type { MemorandumResponse } from '@/rest-client/interface/response/MemorandumResponse';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const memorandumService = new MemorandumService();
 
 const formSchema = z.object({
   type: z.string().min(1, 'El tipo es obligatorio'),
   description: z.string().min(1, 'La descripción es obligatoria'),
-  memorandumDate: z
-    .string()
-    .min(1, 'La fecha es obligatoria')
-    .refine((date) => {
-      const parsedDate = new Date(date);
-      return !isNaN(parsedDate.getTime());
-    }, 'Fecha inválida'),
+  memorandumDate: z.date({
+    error: 'La fecha es obligatoria',
+  }),
   isPositive: z.boolean(),
 });
 
@@ -65,7 +69,9 @@ export function MemorandumForm({
     defaultValues: {
       type: memorandum?.type || '',
       description: memorandum?.description || '',
-      memorandumDate: memorandum?.memorandumDate || '',
+      memorandumDate: memorandum?.memorandumDate
+        ? new Date(memorandum.memorandumDate)
+        : undefined,
       isPositive: memorandum?.isPositive ?? true,
     },
   });
@@ -75,7 +81,7 @@ export function MemorandumForm({
       form.reset({
         type: memorandum.type,
         description: memorandum.description,
-        memorandumDate: memorandum.memorandumDate,
+        memorandumDate: new Date(memorandum.memorandumDate),
         isPositive: memorandum.isPositive,
       });
     }
@@ -184,11 +190,68 @@ export function MemorandumForm({
           control={form.control}
           name="memorandumDate"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Fecha del memorándum</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} disabled={loading} />
-              </FormControl>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      disabled={loading}
+                      className={cn(
+                        'w-full pl-3 text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, 'PPP', { locale: es })
+                      ) : (
+                        <span>Selecciona una fecha</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) => {
+                      const today = new Date();
+
+                      if (date > today) return true;
+
+                      if (date < new Date('1900-01-01')) return true;
+
+                      const currentMonth = today.getMonth();
+                      const currentYear = today.getFullYear();
+
+                      const dateMonth = date.getMonth();
+                      const dateYear = date.getFullYear();
+
+                      const isSameYear = dateYear === currentYear;
+
+                      const isEarlyInMonth = today.getDate() <= 5;
+
+                      const isPreviousMonth =
+                        (isSameYear && dateMonth === currentMonth - 1) ||
+                        (currentMonth === 0 &&
+                          dateYear === currentYear - 1 &&
+                          dateMonth === 11);
+
+                      const isOlderThanPreviousMonth =
+                        dateYear < currentYear ||
+                        (isSameYear && dateMonth < currentMonth - 1);
+
+                      if (isOlderThanPreviousMonth) return true;
+                      if (isPreviousMonth && !isEarlyInMonth) return true;
+
+                      return false;
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
@@ -246,6 +309,7 @@ export function MemorandumForm({
                   {...field}
                   disabled={loading}
                   rows={4}
+                  className="resize-none"
                 />
               </FormControl>
               <FormMessage />

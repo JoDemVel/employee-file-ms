@@ -5,10 +5,11 @@ export interface EmployeeUpdateRequest {
   email: string;
   phone: string;
   address: string;
-  birthDate: string;
-  hireDate: string;
+  birthDate: Date;
+  hireDate: Date;
   status: string;
   emergencyContact: EmergencyContactRequest;
+  type: string;
   positionId: string;
   branchId: string;
 }
