@@ -15,7 +15,7 @@ export class EmployeeService {
     return httpClient.get<EmployeeResponse>(`${this.BASE_URL}/${id}`);
   }
 
-  async getEmployeesByCompany(page: number,size: number): Promise<Page<EmployeeResponse>> {
+  async getEmployees(page: number, size: number): Promise<Page<EmployeeResponse>> {
     const url = `${this.BASE_URL}?page=${page}&size=${size}`;
     return httpClient.get<Page<EmployeeResponse>>(url);
   }

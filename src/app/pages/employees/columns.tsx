@@ -2,9 +2,9 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnsTexts } from '@/constants/localize';
 import { formatDate, formatDateHireDate } from '@/lib/formatters';
 import { Actions } from './Actions';
-import type { Employee } from '@/rest-client/interface/Employee';
+import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 
-export const columns: ColumnDef<Employee>[] = [
+export const columns: ColumnDef<EmployeeResponse>[] = [
   {
     id: 'fullName',
     header: () => (
@@ -45,7 +45,7 @@ export const columns: ColumnDef<Employee>[] = [
       const position = row.getValue('positionName') as string;
       return (
         <span className="text-muted-foreground">
-          {position.charAt(0).toUpperCase() + position.slice(1)}
+          {position?.charAt(0).toUpperCase() + position?.slice(1)}
         </span>
       );
     },

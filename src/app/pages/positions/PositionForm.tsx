@@ -22,9 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { useConfigStore } from '@/app/shared/stores/useConfigStore';
-import type { Position } from '@/rest-client/interface/Position';
-import type { Department } from '@/rest-client/interface/Department';
+import type { PositionResponse } from '@/rest-client/interface/response/PositionResponse';
+import type { DepartmentResponse } from '@/rest-client/interface/response/DepartmentResponse';
 
 const departmentService = new (
   await import('@/rest-client/services/DepartmentService')
@@ -43,12 +42,11 @@ const formSchema = z.object({
 type PositionFormValues = z.infer<typeof formSchema>;
 
 interface PositionFormProps {
-  onSave?: (newPosition: Position) => void;
+  onSave?: (newPosition: PositionResponse) => void;
 }
 
 export default function PositionForm({ onSave }: PositionFormProps) {
-  const { companyId } = useConfigStore();
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
   const [loading, setLoading] = useState(false);
 
   const form = useForm<PositionFormValues>({
@@ -62,20 +60,18 @@ export default function PositionForm({ onSave }: PositionFormProps) {
 
   useEffect(() => {
     async function fetchDepartments() {
-      if (!companyId) return;
-      const data = await departmentService.getDepartmentsByCompany(companyId);
+      const data = await departmentService.getDepartments();
       setDepartments(data);
     }
 
     fetchDepartments();
-  }, [companyId]);
+  }, []);
 
   const onSubmit = async (values: PositionFormValues) => {
     try {
       setLoading(true);
       const newPosition = await positionService.createPosition({
         ...values,
-        companyId: companyId || '',
       });
 
       toast('Puesto creado', {

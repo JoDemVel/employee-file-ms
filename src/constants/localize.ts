@@ -11,10 +11,13 @@ export const SidebarItemsTexts = {
     title: 'Departamentos',
   },
   salary: {
-    title: 'Salarios',
+    title: 'Planillas',
   },
   positions: {
     title: 'Posiciones',
+  },
+  branch: {
+    title: 'Sucursales',
   },
   settings: {
     title: 'Configuración',
@@ -114,7 +117,7 @@ export const EmployeeDetailsTexts = {
   memos: 'Memorandums',
   permissions: 'Permisos y Faltas',
   vacations: 'Vacaciones',
-  subsidies: 'Subsidios',
+  advances: 'Adelantos',
   dismissal: 'Desvinculación',
 };
 

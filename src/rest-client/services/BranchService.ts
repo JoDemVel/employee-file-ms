@@ -15,6 +15,6 @@ export class BranchService {
   }
 
   async patchBranch(id: string, branchUpdateRequest: Partial<BranchUpdateRequest>): Promise<BranchResponse> {
-    return httpClient.put<BranchResponse>(`${this.BASE_URL}/${id}`, branchUpdateRequest);
+    return httpClient.patch<BranchResponse>(`${this.BASE_URL}/${id}`, branchUpdateRequest);
   }
 }

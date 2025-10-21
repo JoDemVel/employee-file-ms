@@ -5,8 +5,9 @@ export interface EmployeeCreateRequest {
   email: string;
   phone: string;
   address: string;
-  birthDate: string;
-  hireDate: string;
-  departmentId: string;
+  birthDate: Date;
+  hireDate: Date;
+  type: string;
   positionId: string;
+  branchId: string;
 }

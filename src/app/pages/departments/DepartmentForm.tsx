@@ -15,8 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { useConfigStore } from '@/app/shared/stores/useConfigStore';
-import type { Department } from '@/rest-client/interface/Department';
+import type { DepartmentResponse } from '@/rest-client/interface/response/DepartmentResponse';
 
 const departmentService = new (
   await import('@/rest-client/services/DepartmentService')
@@ -30,11 +29,10 @@ const formSchema = z.object({
 type DepartmentFormValues = z.infer<typeof formSchema>;
 
 interface DepartmentFormProps {
-  onSave?: (newDepartment: Department) => void;
+  onSave?: (newDepartment: DepartmentResponse) => void;
 }
 
 export default function DepartmentForm({ onSave }: DepartmentFormProps) {
-  const { companyId } = useConfigStore();
   const [loading, setLoading] = useState(false);
 
   const form = useForm<DepartmentFormValues>({
@@ -51,7 +49,6 @@ export default function DepartmentForm({ onSave }: DepartmentFormProps) {
 
       const newDepartment = await departmentService.createDepartment({
         ...values,
-        companyId: companyId || '',
       });
 
       toast('Departamento creado', {
@@ -108,6 +105,7 @@ export default function DepartmentForm({ onSave }: DepartmentFormProps) {
                   placeholder="Descripción (opcional)"
                   {...field}
                   disabled={loading}
+                  className="resize-none"
                 />
               </FormControl>
               <FormMessage />

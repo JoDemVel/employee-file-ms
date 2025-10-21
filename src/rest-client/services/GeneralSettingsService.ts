@@ -14,7 +14,7 @@ export class GeneralSettingsService {
     return httpClient.get<GeneralSettingsResponse>(this.BASE_URL);
   }
 
-  async patchSettings(settingsUpdateRequest: Partial<GeneralSettingsUpdateRequest>): Promise<GeneralSettingsResponse> {
-    return httpClient.put<GeneralSettingsResponse>(this.BASE_URL, settingsUpdateRequest);
+  async patchSettings(id: string, settingsUpdateRequest: Partial<GeneralSettingsUpdateRequest>): Promise<GeneralSettingsResponse> {
+    return httpClient.patch<GeneralSettingsResponse>(`${this.BASE_URL}/${id}`, settingsUpdateRequest);
   }
 }

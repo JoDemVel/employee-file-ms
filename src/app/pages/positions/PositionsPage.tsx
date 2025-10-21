@@ -3,19 +3,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, RefreshCw } from 'lucide-react';
-import { useConfigStore } from '@/app/shared/stores/useConfigStore';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import PositionForm from './PositionForm';
-import type { Position } from '@/rest-client/interface/Position';
+import type { PositionResponse } from '@/rest-client/interface/response/PositionResponse';
 
 const positionService = new (
   await import('@/rest-client/services/PositionService')
 ).PositionService();
 
 export function PositionsPage() {
-  const { companyId } = useConfigStore();
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [filtered, setFiltered] = useState<Position[]>([]);
+  const [positions, setPositions] = useState<PositionResponse[]>([]);
+  const [filtered, setFiltered] = useState<PositionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -24,7 +22,7 @@ export function PositionsPage() {
   const fetchPositions = async () => {
     try {
       setLoading(true);
-      const data = await positionService.getPositionsByCompany(companyId!);
+      const data = await positionService.getPositions();
       setPositions(data);
       setFiltered(data);
       setError(null);
@@ -40,16 +38,15 @@ export function PositionsPage() {
     }
   };
 
-  const onSave = async (newPosition: Position) => {
+  const onSave = async (newPosition: PositionResponse) => {
     setPositions((prev) => [newPosition, ...prev]);
     setFiltered((prev) => [newPosition, ...prev]);
     setDialogOpen(false);
   };
 
   useEffect(() => {
-    if (!companyId) return;
     fetchPositions();
-  }, [companyId]);
+  }, []);
 
   useEffect(() => {
     const query = search.trim().toLowerCase();
@@ -116,7 +113,7 @@ export function PositionsPage() {
             <li key={position.id} className="p-4 bg-card rounded-md shadow-sm">
               <p className="font-medium">{position.name}</p>
               <p className="text-sm text-muted-foreground">
-                {'Sin descripción'}
+                {position.description || 'Sin descripción'}
               </p>
             </li>
           ))}

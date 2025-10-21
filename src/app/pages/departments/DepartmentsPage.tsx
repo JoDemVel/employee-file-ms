@@ -3,19 +3,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Plus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useConfigStore } from '@/app/shared/stores/useConfigStore';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import DepartmentForm from './DepartmentForm';
-import type { Department } from '@/rest-client/interface/Department';
+import type { DepartmentResponse } from '@/rest-client/interface/response/DepartmentResponse';
 
 const departmentService = new (
   await import('@/rest-client/services/DepartmentService')
 ).DepartmentService();
 
 export function DepartmentsPage() {
-  const { companyId } = useConfigStore();
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [filtered, setFiltered] = useState<Department[]>([]);
+  const [departments, setDepartments] = useState<DepartmentResponse[]>([]);
+  const [filtered, setFiltered] = useState<DepartmentResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -24,10 +22,11 @@ export function DepartmentsPage() {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const data = await departmentService.getDepartmentsByCompany(companyId!);
-      setDepartments(data);
-      setFiltered(data);
-      setError(null);
+      await departmentService.getDepartments().then((res) => {
+        setDepartments(res);
+        setFiltered(res);
+        setError(null);
+      });
     } catch (e) {
       setError(
         'Error loading departments' +
@@ -40,16 +39,11 @@ export function DepartmentsPage() {
     }
   };
 
-  const onSave = async (newDepartment: Department) => {
+  const onSave = async (newDepartment: DepartmentResponse) => {
     setDepartments((prev) => [newDepartment, ...prev]);
     setFiltered((prev) => [newDepartment, ...prev]);
     setDialogOpen(false);
   };
-
-  useEffect(() => {
-    if (!companyId) return;
-    fetchDepartments();
-  }, [companyId]);
 
   useEffect(() => {
     const query = search.trim().toLowerCase();
@@ -57,6 +51,10 @@ export function DepartmentsPage() {
       departments.filter((d) => d.name.toLowerCase().includes(query))
     );
   }, [search, departments]);
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
 
   return (
     <div className="container mx-auto">
@@ -122,7 +120,7 @@ export function DepartmentsPage() {
             <li key={dept.id} className="p-4 bg-card rounded-md shadow-sm">
               <p className="font-medium">{dept.name}</p>
               <p className="text-sm text-muted-foreground">
-                {'Sin descripción'}
+                {dept.description || 'Sin descripción'}
               </p>
             </li>
           ))}

@@ -1,3 +1,5 @@
+import type { EmployeeProjectionResponse } from "./EmployeeResponse";
+
 export interface PayrollResponse {
   baseSalary: number;
   workedDays: number;
@@ -5,15 +7,21 @@ export interface PayrollResponse {
   seniorityYears: number;
   seniorityIncreasePercentage: number;
   seniorityBonus: number;
+  grossAmount: number;
   deductionAfpPercentage: number;
   deductionAfp: number;
   deductions: PayrollDeductionResponse[];
   totalDeductions: number;
-  totalAmount: number;
+  netAmount: number;
 }
 
 export interface PayrollDeductionResponse {
   type: string;
   qty: number;
   totalDeduction: number;
+}
+
+export interface PayrollEmployeeResponse {
+  employee: EmployeeProjectionResponse;
+  payroll: PayrollResponse;
 }
