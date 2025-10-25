@@ -16,10 +16,9 @@ import {
 } from '@/components/ui/form';
 import { toast } from 'sonner';
 import type { DepartmentResponse } from '@/rest-client/interface/response/DepartmentResponse';
+import { DepartmentService } from '@/rest-client/services/DepartmentService';
 
-const departmentService = new (
-  await import('@/rest-client/services/DepartmentService')
-).DepartmentService();
+const departmentService = new DepartmentService();
 
 const formSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),

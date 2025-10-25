@@ -12,10 +12,9 @@ import type { EmployeeResponse } from '@/rest-client/interface/response/Employee
 import { AdvanceSection } from './components/AdvanceSection';
 import { VacationSection } from './components/VacationSection';
 import { MemorandumSection } from './components/MemorandumSection';
+import { EmployeeService } from '@/rest-client/services/EmployeeService';
 
-const employeeService = new (
-  await import('@/rest-client/services/EmployeeService')
-).EmployeeService();
+const employeeService = new EmployeeService();
 
 export function EmployeeDetailPage() {
   const { employeeId } = useParams();

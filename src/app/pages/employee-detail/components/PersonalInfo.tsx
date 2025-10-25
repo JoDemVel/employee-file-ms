@@ -20,6 +20,7 @@ import { PersonalInfoForm } from './forms/PersonalInfoForm';
 import EmergencyContactForm from './forms/EmergencyContactForm';
 import PdfUploader from '@/app/shared/components/PdfUploader';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
+import { EmployeeService } from '@/rest-client/services/EmployeeService';
 
 type DialogContentType =
   | 'EDIT_PERSONAL_INFO'
@@ -31,9 +32,7 @@ interface PersonalInfoProps {
   employeeId: string;
 }
 
-const employeeService = new (
-  await import('@/rest-client/services/EmployeeService')
-).EmployeeService();
+const employeeService = new EmployeeService();
 
 export function PersonalInfo({ employeeId }: PersonalInfoProps) {
   const [dialogOpen, setDialogOpen] = useState(false);

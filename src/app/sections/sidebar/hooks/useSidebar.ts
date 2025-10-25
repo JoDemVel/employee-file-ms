@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useSidebarService } from './useSidebarService';
-import type { Company } from '@/rest-client/interface/Company';
+import type { CompanyResponse } from '@/rest-client/interface/response/CompanyResponse';
 
 export const useSidebar = () => {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<CompanyResponse[]>([]);
   const { getCompanies } = useSidebarService();
 
   useEffect(() => {
     getCompanies
-      .then((data: Company[]) => {
+      .then((data: CompanyResponse[]) => {
         console.log('Fetched companies:', data);
         setCompanies(data);
       })

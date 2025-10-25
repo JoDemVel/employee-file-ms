@@ -6,10 +6,9 @@ import { Plus, RefreshCw } from 'lucide-react';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import PositionForm from './PositionForm';
 import type { PositionResponse } from '@/rest-client/interface/response/PositionResponse';
+import { PositionService } from '@/rest-client/services/PositionService';
 
-const positionService = new (
-  await import('@/rest-client/services/PositionService')
-).PositionService();
+const positionService = new PositionService();
 
 export function PositionsPage() {
   const [positions, setPositions] = useState<PositionResponse[]>([]);

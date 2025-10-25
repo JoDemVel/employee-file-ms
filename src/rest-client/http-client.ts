@@ -4,7 +4,7 @@ import type { ApiError, RequestConfig } from './types/api.types';
 class HttpClient {
   private instance: AxiosInstance;
 
-  constructor(baseURL: string = 'http://localhost:8080/api') {
+  constructor(baseURL: string = import.meta.env.VITE_API_URL) {
     this.instance = axios.create({
       baseURL,
       timeout: 10000,

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/form';
 import { toast } from 'sonner';
 import type { BranchResponse } from '@/rest-client/interface/response/BranchResponse';
+import { BranchService } from '@/rest-client/services/BranchService';
 
 const BOLIVIAN_CITIES = [
   'La Paz',
@@ -35,9 +36,7 @@ const BOLIVIAN_CITIES = [
   'Pando',
 ];
 
-const branchService = new (
-  await import('@/rest-client/services/BranchService')
-).BranchService();
+const branchService = new BranchService();
 
 const formSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),

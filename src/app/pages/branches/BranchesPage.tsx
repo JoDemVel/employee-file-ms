@@ -6,10 +6,9 @@ import { Plus, RefreshCw } from 'lucide-react';
 import type { BranchResponse } from '@/rest-client/interface/response/BranchResponse';
 import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import BranchForm from './BranchForm';
+import { BranchService } from '@/rest-client/services/BranchService';
 
-const branchService = new (
-  await import('@/rest-client/services/BranchService')
-).BranchService();
+const branchService = new BranchService();
 
 export function BranchesPage() {
   const [branches, setBranches] = useState<BranchResponse[]>([]);
