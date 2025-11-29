@@ -7,7 +7,6 @@ import { formatDate, formatDateHireDate } from '@/lib/formatters';
 import {
   Briefcase,
   Calendar,
-  FileText,
   Mail,
   Phone,
   UserRound,

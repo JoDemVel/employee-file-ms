@@ -6,7 +6,6 @@ import {
   Calendar,
   Phone,
   FileText,
-  Download,
   UserPlus,
   Edit,
   FolderOpen,

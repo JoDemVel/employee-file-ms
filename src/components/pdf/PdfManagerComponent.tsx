@@ -18,12 +18,12 @@ const mapFileToStaticSections = (
   fileData: FileWithUrlResponse
 ): StaticSectionConfig[] => {
   // Crear mapa de secciones predefinidas (título en minúsculas -> key)
-  const predefinedMap = new Map(
-    PREDEFINED_SECTIONS.map((section) => [
-      section.title.toLowerCase(),
-      section.key,
-    ])
-  );
+  // const predefinedMap = new Map(
+  //   PREDEFINED_SECTIONS.map((section) => [
+  //     section.title.toLowerCase(),
+  //     section.key,
+  //   ])
+  // );
 
   // Crear mapa de secciones existentes
   const existingSectionsMap = new Map(

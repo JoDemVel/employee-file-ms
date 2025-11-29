@@ -10,13 +10,13 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar';
 import { NavMain } from './components/NavMain';
-import { NavUser } from './components/NavUser';
+// import { NavUser } from './components/NavUser';
 import { CompanySwitcher } from './components/CompanySwitcher';
 import {
   sidebarGroupItems,
   sidebarItems,
 } from '@/app/shared/data/sidebar-items';
-import { defaultUser } from '@/app/shared/data/users';
+// import { defaultUser } from '@/app/shared/data/users';
 import { NavSecondary } from './components/NavSecondary';
 import { useSidebar } from './hooks/useSidebar';
 
@@ -42,7 +42,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         {/* // TODO: Add user logged in state */}
-        <NavUser user={defaultUser} />
+        {/* <NavUser user={defaultUser} /> */}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
