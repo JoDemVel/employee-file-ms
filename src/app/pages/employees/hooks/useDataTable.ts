@@ -26,10 +26,12 @@ export function useDataTable<T>({
   endpoint,
   initialPageSize = 10,
   initialFilters = {},
+  dependencies = [],
 }: {
   endpoint: string;
   initialPageSize?: number;
   initialFilters?: TableFilters;
+  dependencies?: unknown[];
 }): UseDataTableReturn<T> {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,7 +74,7 @@ export function useDataTable<T>({
         setPageCount(result.page.totalPages);
       }
     } catch (err) {
-      console.error('Error fetching employee details:', err);
+      console.error('Error fetching data:', err);
       setError(err instanceof Error ? err.message : ErrorTexts.genericError);
       setData([]);
       setPageCount(0);
@@ -84,12 +86,21 @@ export function useDataTable<T>({
     pagination.pageIndex,
     pagination.pageSize,
     searchValue,
+    filters,
     companyId,
+    ...dependencies,
   ]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    setPaginationState({
+      pageIndex: 0,
+      pageSize: initialPageSize,
+    });
+  }, [companyId, initialPageSize]);
 
   const handleSearchChange = useCallback((search: string) => {
     setSearchValue(search);

@@ -62,8 +62,8 @@ export function SortableDocument({
       <div
         className={`p-4 border-b ${
           isSeparator
-            ? 'bg-gradient-to-r from-amber-100 to-orange-100 border-amber-200'
-            : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-gray-200'
+            ? 'bg-slate-100 border-amber-200'
+            : 'bg-slate-100 border-gray-200'
         }`}
       >
         <div className="flex items-center gap-3">

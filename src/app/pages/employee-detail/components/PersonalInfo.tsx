@@ -35,13 +35,12 @@ type DialogContentType = 'EDIT_PERSONAL_INFO' | 'EMERGENCY_CONTACT' | null;
 
 interface PersonalInfoProps {
   employeeId: string;
-  companyId: string;
 }
 
 const employeeService = new EmployeeService();
 const fileService = new FileService();
 
-export function PersonalInfo({ employeeId, companyId }: PersonalInfoProps) {
+export function PersonalInfo({ employeeId }: PersonalInfoProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContentType>(null);
   const [employee, setEmployee] = useState<EmployeeResponse | null>(null);
@@ -177,7 +176,11 @@ export function PersonalInfo({ employeeId, companyId }: PersonalInfoProps) {
       </ReusableDialog>
 
       {/* Drawer para File Manager */}
-      <Drawer open={fileDrawerOpen} onOpenChange={setFileDrawerOpen} shouldScaleBackground={true}>
+      <Drawer
+        open={fileDrawerOpen}
+        onOpenChange={setFileDrawerOpen}
+        shouldScaleBackground={true}
+      >
         <DrawerContent className="">
           <DrawerHeader>
             <DrawerTitle>Administrar File del Empleado</DrawerTitle>
@@ -194,7 +197,6 @@ export function PersonalInfo({ employeeId, companyId }: PersonalInfoProps) {
               <PdfManagerComponent
                 fileData={fileData || undefined}
                 employeeId={employeeId}
-                companyId={companyId}
               />
             )}
           </div>
@@ -242,8 +244,8 @@ export function PersonalInfo({ employeeId, companyId }: PersonalInfoProps) {
             <span>Administrar File</span>
           </Button>
           <Button variant="outline" className="w-48" disabled>
-            <Download className="mr-2" />
-            <span>Descargar File</span>
+            <FileText className="mr-2" />
+            <span>Ver File</span>
           </Button>
         </section>
       </section>

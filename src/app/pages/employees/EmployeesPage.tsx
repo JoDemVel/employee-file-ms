@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw } from 'lucide-react';
-import { useDataTable } from './hooks/userDataTable';
+import { useDataTable } from './hooks/useDataTable';
 import { DataTable } from '@/app/shared/components/DataTable';
 import { columns } from './columns';
 import { SearchInput } from '@/app/shared/components/SearchInput';

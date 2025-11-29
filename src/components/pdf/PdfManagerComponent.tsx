@@ -6,31 +6,61 @@ import { Download, Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { FileWithUrlResponse } from '@/rest-client/interface/response/FileResponse';
 
-const transformUrl = (url: string): string => {
-  return url.replace('http://localhost:9001', '/minio-proxy');
-};
+// const transformUrl = (url: string): string => {
+//   return url.replace('http://localhost:9001', '/minio-proxy');
+// };
+
+const PREDEFINED_SECTIONS = [
+  { key: 'informacion-personal', title: 'Información Personal' },
+  { key: 'permisos-faltas', title: 'Permisos y Faltas' },
+  { key: 'pagos', title: 'Pagos' },
+  { key: 'otros', title: 'Otros' },
+  { key: 'desvinculacion', title: 'Desvinculación' },
+];
 
 const mapFileToStaticSections = (
   fileData: FileWithUrlResponse
 ): StaticSectionConfig[] => {
-  return fileData.sections.map((section) => ({
-    id: section.id,
-    title: section.section || section.originalName,
-    pdfUrl: transformUrl(section.url),
-    includeSeparatorPage: true,
-  }));
+  const existingSectionsMap = new Map(
+    fileData.sections.map((section) => [
+      section.section?.toLowerCase() || section.originalName.toLowerCase(),
+      {
+        id: section.id,
+        title: section.section || section.originalName,
+        // pdfUrl: transformUrl(section.url),
+        pdfUrl: section.url,
+        includeSeparatorPage: false,
+      },
+    ])
+  );
+
+  return PREDEFINED_SECTIONS.map((predefinedSection) => {
+    const existingSection = existingSectionsMap.get(
+      predefinedSection.title.toLowerCase()
+    );
+
+    if (existingSection) {
+      return existingSection;
+    }
+
+    // Si no existe, crear una sección vacía
+    return {
+      id: `empty-${predefinedSection.key}`,
+      title: predefinedSection.title,
+      pdfUrl: undefined, // Sin PDF
+      includeSeparatorPage: false,
+    };
+  });
 };
 
 interface PdfManagerComponentProps {
   fileData?: FileWithUrlResponse;
   employeeId?: string;
-  companyId?: string;
 }
 
 export const PdfManagerComponent = ({
   fileData,
   employeeId,
-  companyId,
 }: PdfManagerComponentProps) => {
   const pdfMergeRef = useRef<PdfMergeReorderRef>(null);
   const [documents, setDocuments] = useState<DocumentGroup[]>([]);
@@ -40,7 +70,15 @@ export const PdfManagerComponent = ({
   const [sectionTitle, setSectionTitle] = useState('');
 
   const staticSections = useMemo(() => {
-    if (!fileData) return [];
+    if (!fileData) {
+      // Si no hay datos del empleado, crear todas las secciones vacías
+      return PREDEFINED_SECTIONS.map((section) => ({
+        id: `empty-${section.key}`,
+        title: section.title,
+        pdfUrl: undefined,
+        includeSeparatorPage: false,
+      }));
+    }
     return mapFileToStaticSections(fileData);
   }, [fileData]);
 
@@ -78,12 +116,13 @@ export const PdfManagerComponent = ({
     if (!pdfMergeRef.current) return;
 
     const targetEmployeeId = employeeId || fileData?.employeeId;
-    const targetCompanyId = companyId || fileData?.companyId;
+
+    const companyId = localStorage.getItem('company_id');
 
     const result = await pdfMergeRef.current.uploadSectionsToEndpoint({
-      url: `http://localhost:8080/api/files/employees/${targetEmployeeId}`,
+      url: `${import.meta.env.VITE_API_URL}files/employees/${targetEmployeeId}`,
       headers: {
-        'X-COMPANY-ID': targetCompanyId!,
+        'X-COMPANY-ID': companyId!,
       },
       onlyStaticSections: false,
       onlyWithPages: false,
@@ -99,7 +138,7 @@ export const PdfManagerComponent = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header con botones */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
@@ -119,8 +158,6 @@ export const PdfManagerComponent = ({
                 <Upload className="w-5 h-5 mr-2" />
                 Guardar File
               </Button>
-
-              {/* Botones de exportación */}
             </div>
             {documents.length > 0 && (
               <div className="flex gap-2">

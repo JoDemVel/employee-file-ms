@@ -24,10 +24,18 @@ class HttpClient {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        const companyId = localStorage.getItem('company_id');
+        const configStore = sessionStorage.getItem('config-store');
+        if (configStore) {
+          try {
+            const parsed = JSON.parse(configStore);
+            const companyId = parsed.state?.companyId;
 
-        if (companyId) {
-          config.headers['X-Company-Id'] = companyId;
+            if (companyId) {
+              config.headers['X-Company-Id'] = companyId;
+            }
+          } catch (error) {
+            console.error('Error parsing config store:', error);
+          }
         }
 
         return config;
@@ -54,7 +62,6 @@ class HttpClient {
 
         if (error.response?.status === 401) {
           localStorage.removeItem('auth_token');
-          localStorage.removeItem('company_id');
           window.location.href = '/login';
         }
 

@@ -8,6 +8,7 @@ import {
   Briefcase,
   Calendar,
   Download,
+  FileText,
   Mail,
   Phone,
   UserRound,
@@ -80,8 +81,8 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
                   <span>{EmployeeDetailsTexts.edit}</span>
                 </Button>
                 <Button variant="outline" disabled>
-                  <Download />
-                  <span>{EmployeeDetailsTexts.download}</span>
+                  <FileText />
+                  <span>Ver File</span>
                 </Button>
               </section>
             </section>
