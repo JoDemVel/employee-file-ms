@@ -71,7 +71,7 @@ export function CompanySwitcher({ companies }: CompanyProps) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu modal>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"

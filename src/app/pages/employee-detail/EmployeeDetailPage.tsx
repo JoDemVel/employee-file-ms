@@ -21,6 +21,10 @@ export function EmployeeDetailPage() {
   const { employeeId } = useParams();
   const [employee, setEmployee] = useState<EmployeeResponse | null>(null);
 
+  const handleEmployeeUpdate = (updatedEmployee: EmployeeResponse) => {
+    setEmployee(updatedEmployee);
+  };
+
   const tabItems = [
     {
       value: 'personal-info',
@@ -71,7 +75,13 @@ export function EmployeeDetailPage() {
     {
       value: 'dismissal',
       label: EmployeeDetailsTexts.dismissal,
-      content: <EmployeeDisassociationSection employee={employee!} />,
+      content: (
+        <EmployeeDisassociationSection
+          employee={employee!}
+          onDisassociate={handleEmployeeUpdate}
+          onAssociate={handleEmployeeUpdate}
+        />
+      ),
       disabled: false,
     },
   ];

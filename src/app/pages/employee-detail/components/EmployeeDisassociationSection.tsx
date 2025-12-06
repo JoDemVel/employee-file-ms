@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { UserX, Calendar, AlertTriangle, Clock } from 'lucide-react';
+import { UserX, Calendar, AlertTriangle, Clock, UserCheck } from 'lucide-react';
 import { EmployeeService } from '@/rest-client/services/EmployeeService';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 import { toast } from 'sonner';
@@ -21,6 +21,7 @@ import {
 type EmployeeDisassociationSectionProps = {
   employee: EmployeeResponse;
   onDisassociate?: (updatedEmployee: EmployeeResponse) => void;
+  onAssociate?: (updatedEmployee: EmployeeResponse) => void;
 };
 
 const employeeService = new EmployeeService();
@@ -56,22 +57,24 @@ const calculateDeletionDate = (disassociatedAt: string): string => {
 export function EmployeeDisassociationSection({
   employee,
   onDisassociate,
+  onAssociate,
 }: EmployeeDisassociationSectionProps) {
   const [disassociateDialogOpen, setDisassociateDialogOpen] = useState(false);
+  const [associateDialogOpen, setAssociateDialogOpen] = useState(false);
   const [disassociating, setDisassociating] = useState(false);
+  const [associating, setAssociating] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number>(0);
 
-  const isDisassociated = employee.disassociated;
+  const isDisassociated = employee.isDisassociated;
 
   useEffect(() => {
     if (isDisassociated && employee.disassociatedAt) {
-      // Actualizar contador cada segundo
       const updateCounter = () => {
         setDaysRemaining(calculateDaysRemaining(employee.disassociatedAt!));
       };
 
       updateCounter();
-      const interval = setInterval(updateCounter, 60000); // Actualizar cada minuto
+      const interval = setInterval(updateCounter, 60000);
 
       return () => clearInterval(interval);
     }
@@ -115,6 +118,44 @@ export function EmployeeDisassociationSection({
     }
   };
 
+  const handleAssociateClick = () => {
+    setAssociateDialogOpen(true);
+  };
+
+  const handleAssociateConfirm = async () => {
+    try {
+      setAssociating(true);
+
+      const updatedEmployee = await employeeService.associateEmployee(
+        employee.id
+      );
+
+      toast.success('Empleado re-asociado', {
+        description: (
+          <p className="text-slate-700 select-none">
+            {`${employee.firstName} ${employee.lastName} ha sido re-asociado correctamente`}
+          </p>
+        ),
+      });
+
+      if (onAssociate) {
+        onAssociate(updatedEmployee);
+      }
+    } catch (error) {
+      console.error('Error al re-asociar empleado:', error);
+      toast.error('Error al re-asociar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            No se pudo re-asociar al empleado
+          </p>
+        ),
+      });
+    } finally {
+      setAssociating(false);
+      setAssociateDialogOpen(false);
+    }
+  };
+
   if (isDisassociated) {
     const deletionDate = employee.disassociatedAt
       ? calculateDeletionDate(employee.disassociatedAt)
@@ -122,6 +163,37 @@ export function EmployeeDisassociationSection({
 
     return (
       <section className="flex flex-col gap-6 p-4">
+        <AlertDialog
+          open={associateDialogOpen}
+          onOpenChange={setAssociateDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Cancelar desvinculación?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción reactivará al empleado{' '}
+                <span className="font-semibold">
+                  {employee.firstName} {employee.lastName}
+                </span>{' '}
+                y cancelará el proceso de eliminación automática. El empleado
+                volverá a estar activo en el sistema.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={associating}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleAssociateConfirm}
+                disabled={associating}
+                className="bg-green-600 text-white hover:bg-green-700"
+              >
+                {associating ? 'Re-asociando...' : 'Re-asociar Empleado'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-red-600" />
           <span className="text-xl font-bold text-red-600">
@@ -203,6 +275,31 @@ export function EmployeeDisassociationSection({
                 </div>
               </div>
 
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex gap-3">
+                  <UserCheck className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-900 mb-1">
+                      ¿Deseas cancelar la desvinculación?
+                    </p>
+                    <p className="text-xs text-green-700 mb-3">
+                      Puedes re-asociar al empleado antes de que se eliminen sus
+                      datos. Esto cancelará el proceso de eliminación y
+                      reactivará al empleado en el sistema.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={handleAssociateClick}
+                      className="gap-2 border-green-600 text-green-700 hover:bg-green-50 hover:text-green-800"
+                      disabled={associating}
+                    >
+                      <UserCheck className="h-4 w-4" />
+                      {associating ? 'Re-asociando...' : 'Cancelar Desvinculación'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex gap-3">
                   <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -246,8 +343,8 @@ export function EmployeeDisassociationSection({
                 {employee.firstName} {employee.lastName}
               </span>{' '}
               como desvinculado. Los datos del empleado se eliminarán
-              automáticamente después de 30 días. Esta acción no se puede
-              deshacer.
+              automáticamente después de 30 días. Esta acción se puede cancelar
+              durante ese período.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
