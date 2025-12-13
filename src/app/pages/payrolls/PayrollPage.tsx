@@ -2,10 +2,13 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, Calculator } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DataTable } from '@/app/shared/components/DataTable';
-import { SearchInput } from '@/app/shared/components/SearchInput';
 import { PayrollService } from '@/rest-client/services/PayrollService';
-import type { PayrollSummaryResponse } from '@/rest-client/interface/response/PayrollResponse';
+import type {
+  PayrollSummaryResponse,
+  PayrollSummaryPageResponse,
+} from '@/rest-client/interface/response/PayrollResponse';
 import type { PaymentSummaryResponse } from '@/rest-client/interface/response/PaymentResponse';
+import type { EmployeeSearchParams } from '@/rest-client/interface/request/EmployeeSearchParams';
 import { PaymentService } from '@/rest-client/services/PaymentService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -28,6 +31,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { currentColumns, historicalColumns } from './columns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmployeeFilters } from '../employees/EmployeeFilters';
 
 const payrollService = new PayrollService();
 const paymentService = new PaymentService();
@@ -60,7 +64,6 @@ const getPeriodInfo = (monthsAgo: number) => {
   };
 };
 
-// Generar lista de períodos (últimos 12 meses)
 const generatePeriods = () => {
   return Array.from({ length: 12 }, (_, i) => {
     const info = getPeriodInfo(i + 1);
@@ -74,16 +77,26 @@ const generatePeriods = () => {
 
 export default function PayrollsPage() {
   // Estados para nóminas actuales
-  const [currentData, setCurrentData] = useState<PayrollSummaryResponse | null>(null);
+  const [currentData, setCurrentData] = useState<PayrollSummaryResponse | null>(
+    null
+  );
   const [currentLoading, setCurrentLoading] = useState(false);
   const [currentError, setCurrentError] = useState<string | null>(null);
-  const [currentSearchValue, setCurrentSearchValue] = useState('');
+  const [currentFilters, setCurrentFilters] = useState<EmployeeSearchParams>(
+    {}
+  );
+  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPageSize] = useState(20);
+  const [currentTotalPages, setCurrentTotalPages] = useState(0);
+  const [hasFilters, setHasFilters] = useState(false);
 
   // Estados para pagos históricos
-  const [historicalData, setHistoricalData] = useState<PaymentSummaryResponse | null>(null);
+  const [historicalData, setHistoricalData] =
+    useState<PaymentSummaryResponse | null>(null);
   const [historicalLoading, setHistoricalLoading] = useState(false);
   const [historicalError, setHistoricalError] = useState<string | null>(null);
-  const [historicalSearchValue, setHistoricalSearchValue] = useState('');
+  const [historicalFilters, setHistoricalFilters] =
+    useState<EmployeeSearchParams>({});
   const [selectedPeriod, setSelectedPeriod] = useState<string>(
     getPeriodInfo(1).period.toString()
   );
@@ -92,14 +105,50 @@ export default function PayrollsPage() {
 
   const periods = generatePeriods();
 
+  // Verificar si hay filtros activos
+  const hasActiveFilters = (filters: EmployeeSearchParams) => {
+    return Boolean(
+      filters.search ||
+        filters.ci ||
+        filters.email ||
+        filters.phone ||
+        filters.type ||
+        filters.branchId ||
+        filters.positionId
+    );
+  };
+
   // Fetch nóminas actuales
   const fetchCurrentPayrolls = async () => {
     setCurrentLoading(true);
     setCurrentError(null);
 
     try {
-      const result = await payrollService.getAllPayrolls();
-      setCurrentData(result);
+      const filtersActive = hasActiveFilters(currentFilters);
+      setHasFilters(filtersActive);
+
+      if (filtersActive) {
+        // Con filtros: usar getPayrolls (paginado)
+        const result: PayrollSummaryPageResponse =
+          await payrollService.getPayrolls(
+            currentPage,
+            currentPageSize,
+            currentFilters
+          );
+
+        // Convertir PayrollSummaryPageResponse a PayrollSummaryResponse
+        setCurrentData({
+          payrolls: result.payrolls.content,
+          totals: result.totals,
+        });
+        setCurrentTotalPages(result.payrolls.page.totalPages);
+      } else {
+        // Sin filtros: usar getAllPayrolls (completo)
+        const result: PayrollSummaryResponse =
+          await payrollService.getAllPayrolls();
+        setCurrentData(result);
+        setCurrentTotalPages(0);
+      }
     } catch (err) {
       console.error('Error fetching payrolls:', err);
       setCurrentError(
@@ -136,18 +185,19 @@ export default function PayrollsPage() {
 
   useEffect(() => {
     fetchCurrentPayrolls();
-  }, []);
+  }, [currentFilters, currentPage]);
 
   useEffect(() => {
     fetchHistoricalPayments();
   }, [selectedPeriod]);
 
-  const handleCurrentSearchChange = (search: string) => {
-    setCurrentSearchValue(search);
+  const handleCurrentFiltersChange = (filters: EmployeeSearchParams) => {
+    setCurrentFilters(filters);
+    setCurrentPage(0); // Reset página cuando cambian filtros
   };
 
-  const handleHistoricalSearchChange = (search: string) => {
-    setHistoricalSearchValue(search);
+  const handleHistoricalFiltersChange = (filters: EmployeeSearchParams) => {
+    setHistoricalFilters(filters);
   };
 
   const handlePeriodChange = (value: string) => {
@@ -173,7 +223,6 @@ export default function PayrollsPage() {
         ),
       });
 
-      // Recargar los datos después del reprocesamiento
       await fetchHistoricalPayments();
     } catch (error) {
       console.error('Error al reprocesar pagos:', error);
@@ -191,31 +240,28 @@ export default function PayrollsPage() {
     }
   };
 
-  // Filtrar datos actuales por búsqueda
-  const filteredCurrentData = currentData?.payrolls.filter((item) => {
-    if (!currentSearchValue) return true;
-    const search = currentSearchValue.toLowerCase();
-    const { firstName, lastName, ci, email } = item.employee;
-    return (
-      firstName.toLowerCase().includes(search) ||
-      lastName.toLowerCase().includes(search) ||
-      ci.toLowerCase().includes(search) ||
-      email.toLowerCase().includes(search)
-    );
-  }) ?? [];
+  // Filtrar datos históricos por búsqueda (client-side)
+  const filteredHistoricalData =
+    historicalData?.payments.filter((item) => {
+      if (!hasActiveFilters(historicalFilters)) return true;
 
-  // Filtrar datos históricos por búsqueda
-  const filteredHistoricalData = historicalData?.payments.filter((item) => {
-    if (!historicalSearchValue) return true;
-    const search = historicalSearchValue.toLowerCase();
-    const { firstName, lastName, ci, email } = item.employee;
-    return (
-      firstName.toLowerCase().includes(search) ||
-      lastName.toLowerCase().includes(search) ||
-      ci.toLowerCase().includes(search) ||
-      email.toLowerCase().includes(search)
-    );
-  }) ?? [];
+      const { firstName, lastName, ci, email } = item.employee;
+      const searchLower = historicalFilters.search?.toLowerCase() || '';
+      const ciLower = historicalFilters.ci?.toLowerCase() || '';
+      const emailLower = historicalFilters.email?.toLowerCase() || '';
+
+      const matchesSearch =
+        !historicalFilters.search ||
+        firstName.toLowerCase().includes(searchLower) ||
+        lastName.toLowerCase().includes(searchLower);
+
+      const matchesCi =
+        !historicalFilters.ci || ci.toLowerCase().includes(ciLower);
+      const matchesEmail =
+        !historicalFilters.email || email.toLowerCase().includes(emailLower);
+
+      return matchesSearch && matchesCi && matchesEmail;
+    }) ?? [];
 
   return (
     <div className="container mx-auto py-6">
@@ -248,20 +294,21 @@ export default function PayrollsPage() {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between">
-                <SearchInput
-                  value={currentSearchValue}
-                  onChange={handleCurrentSearchChange}
-                  placeholder="Buscar por nombre, CI o email..."
+              <div className="flex items-center justify-between gap-2">
+                <EmployeeFilters
+                  filters={currentFilters}
+                  onChange={handleCurrentFiltersChange}
                   disabled={currentLoading}
-                  className="w-full sm:max-w-sm"
+                  debounceMs={500}
+                  showDebounceIndicator={true}
+                  className="flex-1"
                 />
                 <Button
                   onClick={fetchCurrentPayrolls}
                   variant="outline"
                   size="icon"
                   disabled={currentLoading}
-                  className="ml-2"
+                  className="flex-shrink-0"
                 >
                   <RefreshCw
                     className={`h-4 w-4 ${
@@ -271,12 +318,25 @@ export default function PayrollsPage() {
                 </Button>
               </div>
 
-              <div className="rounded-lg border bg-card">
+              <div className="rounded-lg bg-card">
                 <DataTable
                   columns={currentColumns}
-                  data={filteredCurrentData}
+                  data={currentData?.payrolls ?? []}
                   loading={currentLoading}
-                  showPagination={false}
+                  showPagination={hasFilters}
+                  pageCount={currentTotalPages}
+                  pageIndex={currentPage}
+                  pageSize={currentPageSize}
+                  onPaginationChange={(updater) => {
+                    const newPagination =
+                      typeof updater === 'function'
+                        ? updater({
+                            pageIndex: currentPage,
+                            pageSize: currentPageSize,
+                          })
+                        : updater;
+                    setCurrentPage(newPagination.pageIndex);
+                  }}
                   noResultsMessage="No se encontraron nóminas"
                   loadingMessage="Cargando nóminas..."
                 />
@@ -286,7 +346,9 @@ export default function PayrollsPage() {
               {currentData && !currentLoading && (
                 <Card className="border-2">
                   <CardHeader>
-                    <CardTitle className="text-lg">Totales Generales</CardTitle>
+                    <CardTitle className="text-lg">
+                      {hasFilters ? 'Totales Filtrados' : 'Totales Generales'}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -325,8 +387,11 @@ export default function PayrollsPage() {
                     </div>
                     <div className="mt-4 pt-4 border-t">
                       <p className="text-sm text-muted-foreground text-center">
-                        Mostrando {filteredCurrentData.length} de{' '}
-                        {currentData.payrolls.length} empleados
+                        Mostrando {currentData.payrolls.length} empleados
+                        {hasFilters &&
+                          ` (página ${
+                            currentPage + 1
+                          } de ${currentTotalPages})`}
                       </p>
                     </div>
                   </CardContent>
@@ -346,7 +411,8 @@ export default function PayrollsPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>¿Recalcular período?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta acción recalculará todos los pagos del período seleccionado (
+                  Esta acción recalculará todos los pagos del período
+                  seleccionado (
                   {periods.find((p) => p.value === selectedPeriod)?.label}
                   ). Los valores actuales serán reemplazados. ¿Deseas continuar?
                 </AlertDialogDescription>
@@ -403,7 +469,9 @@ export default function PayrollsPage() {
                     title="Recalcular período"
                   >
                     <Calculator
-                      className={`h-4 w-4 ${reprocessing ? 'animate-pulse' : ''}`}
+                      className={`h-4 w-4 ${
+                        reprocessing ? 'animate-pulse' : ''
+                      }`}
                     />
                     <span className="ml-2 hidden sm:inline">
                       {reprocessing ? 'Procesando...' : 'Recalcular'}
@@ -423,12 +491,13 @@ export default function PayrollsPage() {
                   </Button>
                 </div>
 
-                <SearchInput
-                  value={historicalSearchValue}
-                  onChange={handleHistoricalSearchChange}
-                  placeholder="Buscar por nombre, CI o email..."
+                <EmployeeFilters
+                  filters={historicalFilters}
+                  onChange={handleHistoricalFiltersChange}
                   disabled={historicalLoading || reprocessing}
-                  className="w-full sm:max-w-sm"
+                  debounceMs={500}
+                  showDebounceIndicator={true}
+                  className="w-full sm:flex-1"
                 />
               </div>
 
@@ -472,7 +541,9 @@ export default function PayrollsPage() {
                           Total Descuentos
                         </p>
                         <p className="text-xl font-bold text-destructive">
-                          {formatCurrency(historicalData.totals.totalDeductions)}
+                          {formatCurrency(
+                            historicalData.totals.totalDeductions
+                          )}
                         </p>
                       </div>
                       <div className="space-y-1">

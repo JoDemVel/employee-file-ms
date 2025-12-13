@@ -3,7 +3,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { UserX, Calendar, AlertTriangle, Clock, UserCheck } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Calendar as CalendarIcon,
+  UserX,
+  AlertTriangle,
+  Clock,
+  UserCheck,
+  Edit2,
+} from 'lucide-react';
 import { EmployeeService } from '@/rest-client/services/EmployeeService';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
 import { toast } from 'sonner';
@@ -17,6 +26,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 type EmployeeDisassociationSectionProps = {
   employee: EmployeeResponse;
@@ -61,9 +85,17 @@ export function EmployeeDisassociationSection({
 }: EmployeeDisassociationSectionProps) {
   const [disassociateDialogOpen, setDisassociateDialogOpen] = useState(false);
   const [associateDialogOpen, setAssociateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [disassociating, setDisassociating] = useState(false);
   const [associating, setAssociating] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number>(0);
+
+  // Form state
+  const [disassociationDate, setDisassociationDate] = useState<
+    Date | undefined
+  >(undefined);
+  const [disassociationReason, setDisassociationReason] = useState<string>('');
+  const [editing, setEditing] = useState(false);
 
   const isDisassociated = employee.isDisassociated;
 
@@ -80,16 +112,51 @@ export function EmployeeDisassociationSection({
     }
   }, [isDisassociated, employee.disassociatedAt]);
 
+  // Initialize form with current date when opening disassociate dialog
+  useEffect(() => {
+    if (disassociateDialogOpen && !isDisassociated) {
+      setDisassociationDate(new Date());
+      setDisassociationReason('');
+    }
+  }, [disassociateDialogOpen, isDisassociated]);
+
+  // Load existing data when editing
+  useEffect(() => {
+    if (editDialogOpen && employee.disassociationDate) {
+      setDisassociationDate(new Date(employee.disassociationDate));
+      setDisassociationReason(employee.disassociationReason || '');
+    }
+  }, [
+    editDialogOpen,
+    employee.disassociationDate,
+    employee.disassociationReason,
+  ]);
+
   const handleDisassociateClick = () => {
     setDisassociateDialogOpen(true);
   };
 
   const handleDisassociateConfirm = async () => {
+    if (!disassociationDate || !disassociationReason.trim()) {
+      toast.error('Campos requeridos', {
+        description: (
+          <p className="text-slate-700 select-none">
+            Debes especificar la fecha y razón de desvinculación
+          </p>
+        ),
+      });
+      return;
+    }
+
     try {
       setDisassociating(true);
 
       const updatedEmployee = await employeeService.disassociateEmployee(
-        employee.id
+        employee.id,
+        {
+          disassociationDate: disassociationDate,
+          disassociationReason: disassociationReason.trim(),
+        }
       );
 
       toast.success('Empleado desvinculado', {
@@ -156,6 +223,55 @@ export function EmployeeDisassociationSection({
     }
   };
 
+  const handleEditClick = () => {
+    setEditDialogOpen(true);
+  };
+
+  const handleEditConfirm = async () => {
+    if (!disassociationDate || !disassociationReason.trim()) {
+      toast.error('Campos requeridos', {
+        description: (
+          <p className="text-slate-700 select-none">
+            Debes especificar la fecha y razón de desvinculación
+          </p>
+        ),
+      });
+      return;
+    }
+
+    try {
+      setEditing(true);
+
+      const updatedEmployee = await employeeService.associateEmployee(
+        employee.id
+      );
+
+      toast.success('Información actualizada', {
+        description: (
+          <p className="text-slate-700 select-none">
+            La fecha y razón de desvinculación han sido actualizadas
+          </p>
+        ),
+      });
+
+      if (onAssociate) {
+        onAssociate(updatedEmployee);
+      }
+    } catch (error) {
+      console.error('Error al actualizar información:', error);
+      toast.error('Error al actualizar', {
+        description: (
+          <p className="text-slate-700 select-none">
+            No se pudo actualizar la información
+          </p>
+        ),
+      });
+    } finally {
+      setEditing(false);
+      setEditDialogOpen(false);
+    }
+  };
+
   if (isDisassociated) {
     const deletionDate = employee.disassociatedAt
       ? calculateDeletionDate(employee.disassociatedAt)
@@ -194,6 +310,79 @@ export function EmployeeDisassociationSection({
           </AlertDialogContent>
         </AlertDialog>
 
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Información de Desvinculación</DialogTitle>
+              <DialogDescription>
+                Modifica la fecha y razón de desvinculación del empleado.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-date">Fecha de Desvinculación</Label>
+                <Popover modal>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !disassociationDate && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {disassociationDate ? (
+                        formatDate(disassociationDate.toISOString())
+                      ) : (
+                        <span>Selecciona una fecha</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={disassociationDate}
+                      onSelect={setDisassociationDate}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date('1900-01-01')
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-reason">
+                  Razón de Desvinculación
+                  <span className="text-xs text-muted-foreground ml-2">
+                    ({disassociationReason.length}/800)
+                  </span>
+                </Label>
+                <Textarea
+                  id="edit-reason"
+                  placeholder="Especifica la razón de la desvinculación..."
+                  value={disassociationReason}
+                  onChange={(e) => setDisassociationReason(e.target.value)}
+                  maxLength={800}
+                  rows={4}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setEditDialogOpen(false)}
+                disabled={editing}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleEditConfirm} disabled={editing}>
+                {editing ? 'Guardando...' : 'Guardar Cambios'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-red-600" />
           <span className="text-xl font-bold text-red-600">
@@ -225,13 +414,15 @@ export function EmployeeDisassociationSection({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-red-600 mt-0.5" />
+                  <CalendarIcon className="h-5 w-5 text-red-600 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-red-900">
                       Fecha de Desvinculación
                     </p>
                     <p className="text-sm text-red-700">
-                      {employee.disassociatedAt
+                      {employee.disassociationDate
+                        ? formatDate(employee.disassociationDate)
+                        : employee.disassociatedAt
                         ? formatDate(employee.disassociatedAt)
                         : 'N/A'}
                     </p>
@@ -248,6 +439,32 @@ export function EmployeeDisassociationSection({
                   </div>
                 </div>
               </div>
+
+              {employee.disassociationReason && (
+                <>
+                  <Separator className="bg-red-200" />
+                  <div className="bg-white rounded-lg p-4 border border-red-200">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 mb-2">
+                          Razón de Desvinculación
+                        </p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {employee.disassociationReason}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleEditClick}
+                        className="h-8 w-8 flex-shrink-0"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <Separator className="bg-red-200" />
 
@@ -294,7 +511,9 @@ export function EmployeeDisassociationSection({
                       disabled={associating}
                     >
                       <UserCheck className="h-4 w-4" />
-                      {associating ? 'Re-asociando...' : 'Cancelar Desvinculación'}
+                      {associating
+                        ? 'Re-asociando...'
+                        : 'Cancelar Desvinculación'}
                     </Button>
                   </div>
                 </div>
@@ -334,7 +553,7 @@ export function EmployeeDisassociationSection({
         open={disassociateDialogOpen}
         onOpenChange={setDisassociateDialogOpen}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>¿Desvincular empleado?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -343,10 +562,64 @@ export function EmployeeDisassociationSection({
                 {employee.firstName} {employee.lastName}
               </span>{' '}
               como desvinculado. Los datos del empleado se eliminarán
-              automáticamente después de 30 días. Esta acción se puede cancelar
-              durante ese período.
+              automáticamente después de 30 días.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="disassociation-date">
+                Fecha de Desvinculación *
+              </Label>
+              <Popover modal>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start text-left font-normal',
+                      !disassociationDate && 'text-muted-foreground'
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {disassociationDate ? (
+                      formatDate(disassociationDate.toISOString())
+                    ) : (
+                      <span>Selecciona una fecha</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={disassociationDate}
+                    onSelect={setDisassociationDate}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date('1900-01-01')
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="disassociation-reason">
+                Razón de Desvinculación *
+                <span className="text-xs text-muted-foreground ml-2">
+                  ({disassociationReason.length}/800)
+                </span>
+              </Label>
+              <Textarea
+                id="disassociation-reason"
+                placeholder="Especifica la razón de la desvinculación..."
+                value={disassociationReason}
+                onChange={(e) => setDisassociationReason(e.target.value)}
+                maxLength={800}
+                rows={4}
+                required
+              />
+            </div>
+          </div>
+
           <AlertDialogFooter>
             <AlertDialogCancel disabled={disassociating}>
               Cancelar

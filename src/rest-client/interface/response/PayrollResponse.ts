@@ -1,3 +1,4 @@
+import type { Page } from "../Page";
 import type { EmployeeResponse } from "./EmployeeResponse";
 
 export interface PayrollResponse {
@@ -38,5 +39,10 @@ export interface PayrollTotals {
 
 export interface PayrollSummaryResponse {
   payrolls: PayrollEmployeeResponse[];
+  totals: PayrollTotals;
+}
+
+export interface PayrollSummaryPageResponse {
+  payrolls: Page<PayrollEmployeeResponse>;
   totals: PayrollTotals;
 }

@@ -19,6 +19,8 @@ export interface EmployeeResponse {
   branchName: string;
   isDisassociated: boolean;
   disassociatedAt: string | null;
+  disassociationDate: string | null;
+  disassociationReason: string | null;
 }
 
 export interface EmergencyContactResponse {

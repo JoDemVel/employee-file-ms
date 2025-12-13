@@ -182,11 +182,9 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
     header: 'Total Descuentos',
     cell: ({ row }) => {
       const totalDeductions = row.original.payroll.totalDeductions;
-      const deductionAfp = row.original.payroll.deductionAfp;
-      const totalWithAfp = totalDeductions + deductionAfp;
       return (
         <span className="text-sm font-semibold text-destructive">
-          {formatCurrency(totalWithAfp)}
+          {formatCurrency(totalDeductions)}
         </span>
       );
     },

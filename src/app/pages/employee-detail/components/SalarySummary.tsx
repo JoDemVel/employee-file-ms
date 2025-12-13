@@ -289,7 +289,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
             <div className="flex justify-between text-sm">
               <span>
                 Bono de Antigüedad ({payment.seniorityYears} años ×{' '}
-                {(payment.seniorityIncreasePercentage * 100).toFixed(0)}%)
+                {payment.seniorityIncreasePercentage}%)
               </span>
               <span className="font-medium">
                 {formatCurrency(payment.seniorityBonus)}
@@ -447,7 +447,7 @@ export function SalarySummary({ employeeId }: SalarySummaryProps) {
               <div className="flex justify-between text-sm">
                 <span>
                   Bono de Antigüedad ({payroll.seniorityYears} años ×{' '}
-                  {(payroll.seniorityIncreasePercentage * 100).toFixed(0)}%)
+                  {payroll.seniorityIncreasePercentage}%)
                 </span>
                 <span className="font-medium">
                   {formatCurrency(payroll.seniorityBonus)}
