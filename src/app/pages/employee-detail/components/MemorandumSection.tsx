@@ -30,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { format } from 'date-fns';
 
 type MemorandumSectionProps = {
   employeeId: string;
@@ -55,8 +56,8 @@ const getMonthRange = (monthsAgo: number) => {
     59
   );
   return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
+    startDate: format(startDate, 'yyyy-MM-dd'),
+    endDate: format(endDate, 'yyyy-MM-dd'),
     label: formatMonthYear(startDate),
   };
 };

@@ -160,14 +160,15 @@ export default function PayrollsPage() {
     }
   };
 
-  // Fetch pagos históricos
+  // Fetch pagos históricos - AHORA CON FILTROS EN EL BACKEND
   const fetchHistoricalPayments = async () => {
     setHistoricalLoading(true);
     setHistoricalError(null);
 
     try {
       const result = await paymentService.getAllPaymentsByPeriod(
-        parseInt(selectedPeriod)
+        parseInt(selectedPeriod),
+        historicalFilters // Pasamos los filtros al backend
       );
       setHistoricalData(result);
     } catch (err) {
@@ -189,7 +190,7 @@ export default function PayrollsPage() {
 
   useEffect(() => {
     fetchHistoricalPayments();
-  }, [selectedPeriod]);
+  }, [selectedPeriod, historicalFilters]); // Agregamos historicalFilters como dependencia
 
   const handleCurrentFiltersChange = (filters: EmployeeSearchParams) => {
     setCurrentFilters(filters);
@@ -239,29 +240,6 @@ export default function PayrollsPage() {
       setReprocessing(false);
     }
   };
-
-  // Filtrar datos históricos por búsqueda (client-side)
-  const filteredHistoricalData =
-    historicalData?.payments.filter((item) => {
-      if (!hasActiveFilters(historicalFilters)) return true;
-
-      const { firstName, lastName, ci, email } = item.employee;
-      const searchLower = historicalFilters.search?.toLowerCase() || '';
-      const ciLower = historicalFilters.ci?.toLowerCase() || '';
-      const emailLower = historicalFilters.email?.toLowerCase() || '';
-
-      const matchesSearch =
-        !historicalFilters.search ||
-        firstName.toLowerCase().includes(searchLower) ||
-        lastName.toLowerCase().includes(searchLower);
-
-      const matchesCi =
-        !historicalFilters.ci || ci.toLowerCase().includes(ciLower);
-      const matchesEmail =
-        !historicalFilters.email || email.toLowerCase().includes(emailLower);
-
-      return matchesSearch && matchesCi && matchesEmail;
-    }) ?? [];
 
   return (
     <div className="container mx-auto py-6">
@@ -504,7 +482,7 @@ export default function PayrollsPage() {
               <div className="rounded-lg border bg-card">
                 <DataTable
                   columns={historicalColumns}
-                  data={filteredHistoricalData}
+                  data={historicalData?.payments ?? []}
                   loading={historicalLoading}
                   showPagination={false}
                   noResultsMessage="No se encontraron pagos para este período"
@@ -516,7 +494,11 @@ export default function PayrollsPage() {
               {historicalData && !historicalLoading && (
                 <Card className="border-2">
                   <CardHeader>
-                    <CardTitle className="text-lg">Totales Generales</CardTitle>
+                    <CardTitle className="text-lg">
+                      {hasActiveFilters(historicalFilters)
+                        ? 'Totales Filtrados'
+                        : 'Totales Generales'}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -557,8 +539,7 @@ export default function PayrollsPage() {
                     </div>
                     <div className="mt-4 pt-4 border-t">
                       <p className="text-sm text-muted-foreground text-center">
-                        Mostrando {filteredHistoricalData.length} de{' '}
-                        {historicalData.payments.length} empleados
+                        Mostrando {historicalData.payments.length} empleados
                         {' • '}
                         Período:{' '}
                         {periods.find((p) => p.value === selectedPeriod)?.label}

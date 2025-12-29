@@ -1,5 +1,6 @@
 import { httpClient } from "../http-client";
 import type { Page } from "../interface/Page";
+import type { EmployeeSearchParams } from "../interface/request/EmployeeSearchParams";
 import type { PaymentDetailsResponse, PaymentEmployeeResponse, PaymentSummaryResponse } from "../interface/response/PaymentResponse";
 
 export class PaymentService {
@@ -21,7 +22,31 @@ export class PaymentService {
     return httpClient.post<void>(`${this.BASE_URL}/periods/${period}/reprocess`);
   }
 
-  async getAllPaymentsByPeriod(period: number): Promise<PaymentSummaryResponse> {
-    return httpClient.get<PaymentSummaryResponse>(`${this.BASE_URL}/periods/${period}/all`);
+  async getAllPaymentsByPeriod(period: number, searchParams?: EmployeeSearchParams): Promise<PaymentSummaryResponse> {
+    const params = new URLSearchParams();
+
+    if (searchParams?.search) {
+      params.append('search', searchParams.search);
+    }
+    if (searchParams?.ci) {
+      params.append('ci', searchParams.ci);
+    }
+    if (searchParams?.email) {
+      params.append('email', searchParams.email);
+    }
+    if (searchParams?.phone) {
+      params.append('phone', searchParams.phone);
+    }
+    if (searchParams?.type) {
+      params.append('type', searchParams.type);
+    }
+    if (searchParams?.branchId) {
+      params.append('branchId', searchParams.branchId);
+    }
+    if (searchParams?.positionId) {
+      params.append('positionId', searchParams.positionId);
+    }
+
+    return httpClient.get<PaymentSummaryResponse>(`${this.BASE_URL}/periods/${period}/all?${params.toString()}`);
   }
 }

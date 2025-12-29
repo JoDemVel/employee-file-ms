@@ -13,6 +13,7 @@ import {
   TrendingUp,
   TrendingDown,
   Trash2,
+  CheckCircle2,
 } from 'lucide-react';
 import { SalaryEventService } from '@/rest-client/services/SalaryEventService';
 import type { SalaryEventResponse } from '@/rest-client/interface/response/SalaryEventResponse';
@@ -30,6 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatDate } from '@/lib/utils';
+import { format } from 'date-fns';
 
 type SalaryEventsSectionProps = {
   employeeId: string;
@@ -62,8 +64,8 @@ const getMonthRange = (monthsAgo: number) => {
     59
   );
   return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
+    startDate: format(startDate, 'yyyy-MM-dd'),
+    endDate: format(endDate, 'yyyy-MM-dd'),
     label: formatMonthYear(startDate),
   };
 };
@@ -236,8 +238,16 @@ export function SalaryEventsSection({
     isCurrentMonth: boolean = true
   ) => {
     const isBonus = salaryEvent.type === 'BONUS';
-    const bgColor = isBonus ? 'bg-green-50' : 'bg-red-50';
-    const borderColor = isBonus ? 'border-green-200' : 'border-red-200';
+    const bgColor = salaryEvent.processed
+      ? 'bg-slate-50'
+      : isBonus
+      ? 'bg-green-50'
+      : 'bg-red-50';
+    const borderColor = salaryEvent.processed
+      ? 'border-slate-200'
+      : isBonus
+      ? 'border-green-200'
+      : 'border-red-200';
     const iconColor = isBonus ? 'text-green-600' : 'text-red-600';
 
     return (
@@ -272,41 +282,58 @@ export function SalaryEventsSection({
                   Hasta {formatDate(salaryEvent.endDate)}
                 </Badge>
               )}
+              {salaryEvent.processed && (
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200"
+                >
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Procesado
+                </Badge>
+              )}
             </div>
-            <p className={`text-lg font-bold ${iconColor} mb-1`}>
-              {formatCurrency(salaryEvent.amount)}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className={`text-lg font-bold ${iconColor}`}>
+                {formatCurrency(salaryEvent.amount)}
+              </p>
+              {salaryEvent.processed && (
+                <p className="text-xs text-green-600">Aplicado en planilla</p>
+              )}
+            </div>
             {salaryEvent.description && (
-              <p className="text-sm text-gray-700">{salaryEvent.description}</p>
+              <p className="text-sm text-gray-700 mt-1">
+                {salaryEvent.description}
+              </p>
             )}
-            {/* <p className="text-xs text-gray-500 mt-1">
-              Frecuencia:{' '}
-              {salaryEvent.frequency === 'ONE_TIME'
-                ? 'Una vez'
-                : salaryEvent.frequency}
-            </p> */}
           </div>
         </div>
 
         <div className="flex gap-2 flex-shrink-0 ml-2">
-          {isCurrentMonth && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleEdit(salaryEvent)}
-              title="Editar"
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
+          {isCurrentMonth && !salaryEvent.processed && (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleEdit(salaryEvent)}
+                title="Editar"
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleDeleteClick(salaryEvent)}
+                title="Eliminar"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </>
           )}
-          <Button
-            size="sm"
-            variant="destructive"
-            onClick={() => handleDeleteClick(salaryEvent)}
-            title="Eliminar"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {salaryEvent.processed && (
+            <div className="flex items-center text-xs text-muted-foreground">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            </div>
+          )}
         </div>
       </div>
     );

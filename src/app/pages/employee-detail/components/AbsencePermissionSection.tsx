@@ -12,6 +12,7 @@ import {
   ChevronUp,
   Edit2,
   Trash2,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AbsenceService } from '@/rest-client/services/AbsenceService';
@@ -29,6 +30,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatDate } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export const AbsencePermissionType = {
   PERMISSION: 'PERMISSION',
@@ -91,8 +93,8 @@ const getMonthRange = (monthsAgo: number) => {
     59
   );
   return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
+    startDate: format(startDate, 'yyyy-MM-dd'),
+    endDate: format(endDate, 'yyyy-MM-dd'),
     label: formatMonthYear(startDate),
   };
 };
@@ -283,7 +285,9 @@ export function AbsencePermissionSection({
     return (
       <div
         key={event.id}
-        className="flex items-center justify-between p-3 border rounded-lg"
+        className={`flex items-center justify-between p-3 border rounded-lg ${
+          event.processed ? 'bg-slate-50' : ''
+        }`}
       >
         <div className="flex items-center gap-3 flex-1">
           {eventIsAbsence ? (
@@ -308,6 +312,12 @@ export function AbsencePermissionSection({
                     : '1 día'}
                 </Badge>
               )}
+              {event.processed && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Procesado
+                </Badge>
+              )}
             </div>
             <p className="text-sm font-medium">{formatDate(event.date)}</p>
             {event.description && (
@@ -323,8 +333,11 @@ export function AbsencePermissionSection({
             <p className="text-sm font-semibold text-red-600">
               -{formatCurrency(event.deductionAmount)}
             </p>
+            {event.processed && (
+              <p className="text-xs text-green-600">Aplicado en planilla</p>
+            )}
           </div>
-          {isCurrentMonth && (
+          {isCurrentMonth && !event.processed && (
             <div className="flex gap-2">
               <Button
                 size="sm"
@@ -343,6 +356,11 @@ export function AbsencePermissionSection({
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
+            </div>
+          )}
+          {event.processed && (
+            <div className="flex items-center text-xs text-muted-foreground ml-2">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
             </div>
           )}
         </div>

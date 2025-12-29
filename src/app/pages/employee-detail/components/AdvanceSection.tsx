@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Edit2,
   Trash2,
+  CheckCircle2,
 } from 'lucide-react';
 import { AdvanceService } from '@/rest-client/services/AdvanceService';
 import type { AdvanceResponse } from '@/rest-client/interface/response/AdvanceResponse';
@@ -28,6 +29,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatDate } from '@/lib/utils';
+import { format } from 'date-fns';
 
 type AdvanceSectionProps = {
   employeeId: string;
@@ -60,8 +62,8 @@ const getMonthRange = (monthsAgo: number) => {
     59
   );
   return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
+    startDate: format(startDate, 'yyyy-MM-dd'),
+    endDate: format(endDate, 'yyyy-MM-dd'),
     label: formatMonthYear(startDate),
   };
 };
@@ -221,7 +223,9 @@ export function AdvanceSection({
   ) => (
     <div
       key={advance.id}
-      className="flex items-center justify-between p-3 border rounded-lg"
+      className={`flex items-center justify-between p-3 border rounded-lg ${
+        advance.processed ? 'bg-slate-50' : ''
+      }`}
     >
       <div className="flex items-center gap-3 flex-1">
         <DollarSign className="h-5 w-5 text-green-600 flex-shrink-0" />
@@ -229,6 +233,15 @@ export function AdvanceSection({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="secondary">{advance.amount} Bs</Badge>
+            {advance.processed && (
+              <Badge
+                variant="outline"
+                className="bg-green-50 text-green-700 border-green-200"
+              >
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Procesado
+              </Badge>
+            )}
           </div>
           <p className="text-sm font-medium">
             {formatDate(advance.advanceDate)}
@@ -241,9 +254,12 @@ export function AdvanceSection({
           <p className="text-sm font-semibold text-green-600">
             {formatCurrency(advance.amount)}
           </p>
+          {advance.processed && (
+            <p className="text-xs text-green-600">Aplicado en planilla</p>
+          )}
         </div>
 
-        {isCurrentMonth && (
+        {isCurrentMonth && !advance.processed && (
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -262,6 +278,11 @@ export function AdvanceSection({
             >
               <Trash2 className="h-4 w-4" />
             </Button>
+          </div>
+        )}
+        {advance.processed && (
+          <div className="flex items-center text-xs text-muted-foreground ml-2">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
           </div>
         )}
       </div>
