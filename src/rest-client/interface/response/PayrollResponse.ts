@@ -31,10 +31,14 @@ export interface PayrollEmployeeResponse {
 }
 
 export interface PayrollTotals {
+  totalSeniorityBonuses: number;
+  totalOtherBonuses: number;
   totalBonuses: number;
   totalEarnings: number;
+  totalAfpDeductions: number;
   totalDeductions: number;
   netAmount: number;
+  deductions: Record<string, number>;
 }
 
 export interface PayrollSummaryResponse {

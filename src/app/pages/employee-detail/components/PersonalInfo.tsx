@@ -203,6 +203,7 @@ export function PersonalInfo({ employeeId }: PersonalInfoProps) {
               <PdfManagerComponent
                 fileData={fileData || undefined}
                 employeeId={employeeId}
+                employeeName={`${employee.firstName} ${employee.lastName}`}
               />
             )}
           </div>

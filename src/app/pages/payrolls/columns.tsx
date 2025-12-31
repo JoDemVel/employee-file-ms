@@ -26,8 +26,7 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
     id: 'employee',
     header: () => <span className="pl-4">Empleado</span>,
     cell: ({ row }) => {
-      const { firstName, lastName, ci } = row.original.employee;
-      // Asumiendo que tienes positionName disponible, si no, ajusta según tu estructura
+      const { firstName, lastName, ci, branchName } = row.original.employee;
       const position = row.original.employee.positionName || 'Sin cargo';
       return (
         <section className="pl-4 min-w-[200px]">
@@ -35,8 +34,12 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
             {firstName} {lastName}
           </span>
           <span className="text-sm text-muted-foreground block">CI: {ci}</span>
-          <span className="text-xs text-muted-foreground block">
-            {position}
+          <span>
+            <span className="text-sm font-medium">{branchName}</span>
+            <span className="text-xs text-muted-foreground">
+              {` | `}
+              {position}
+            </span>
           </span>
         </section>
       );
@@ -129,6 +132,18 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
     },
   },
   {
+    accessorKey: 'payroll.totalBonuses',
+    header: 'Total Bonos',
+    cell: ({ row }) => {
+      const otherBonuses = row.original.payroll.totalBonuses;
+      return (
+        <span className="text-sm font-medium text-green-600">
+          {formatCurrency(otherBonuses)}
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: 'payroll.totalEarnings',
     header: 'Total Ganado',
     cell: ({ row }) => {
@@ -213,7 +228,7 @@ export const historicalColumns: ColumnDef<PaymentEmployeeResponse>[] = [
     header: () => <span className="pl-4">Empleado</span>,
     cell: ({ row }) => {
       const { firstName, lastName, ci } = row.original.employee;
-      // Asumiendo que tienes positionName disponible
+      const branchName = row.original.employee.branchName ?? '';
       const position = row.original.employee.positionName || 'Sin cargo';
       return (
         <section className="pl-4 min-w-[200px]">
@@ -221,8 +236,12 @@ export const historicalColumns: ColumnDef<PaymentEmployeeResponse>[] = [
             {firstName} {lastName}
           </span>
           <span className="text-sm text-muted-foreground block">CI: {ci}</span>
-          <span className="text-xs text-muted-foreground block">
-            {position}
+          <span>
+            <span className="text-sm font-medium">{branchName}</span>
+            <span className="text-xs text-muted-foreground">
+              {` | `}
+              {position}
+            </span>
           </span>
         </section>
       );
@@ -304,6 +323,18 @@ export const historicalColumns: ColumnDef<PaymentEmployeeResponse>[] = [
     header: 'Otros Bonos',
     cell: ({ row }) => {
       const otherBonuses = row.original.payment.otherBonuses;
+      return (
+        <span className="text-sm font-medium text-green-600">
+          {formatCurrency(otherBonuses)}
+        </span>
+      );
+    },
+  },
+  {
+    accessorKey: 'payment.totalBonuses',
+    header: 'Total Bonos',
+    cell: ({ row }) => {
+      const otherBonuses = row.original.payment.totalBonuses;
       return (
         <span className="text-sm font-medium text-green-600">
           {formatCurrency(otherBonuses)}

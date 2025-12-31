@@ -72,6 +72,7 @@ type AbsencePermissionFormValues = z.infer<typeof formSchema>;
 interface AbsencePermissionFormProps {
   employeeId: string;
   absence?: AbsenceResponse;
+  useReplaceMode?: boolean;
   onSave?: (newEvent: AbsenceResponse) => void;
   onCancel?: () => void;
 }
@@ -83,24 +84,49 @@ const formatCurrency = (value: number) =>
     minimumFractionDigits: 2,
   }).format(value);
 
-// Función para extraer información del absence existente
+// Función mejorada para extraer información del absence existente
 const parseAbsenceData = (absence: AbsenceResponse) => {
   const description = absence.description || '';
+  const lowerDesc = description.toLowerCase();
 
-  // Determinar tipo
-  const type = description.toLowerCase().includes('falta')
-    ? AbsencePermissionType.ABSENCE
-    : AbsencePermissionType.PERMISSION;
+  // Determinar tipo - buscar las palabras clave
+  let type: AbsencePermissionType;
+  if (lowerDesc.includes('falta')) {
+    type = AbsencePermissionType.ABSENCE;
+  } else if (lowerDesc.includes('permiso')) {
+    type = AbsencePermissionType.PERMISSION;
+  } else {
+    // Default si no se encuentra ninguna palabra clave
+    type = AbsencePermissionType.PERMISSION;
+  }
 
-  // Determinar duración
-  const duration = description.toLowerCase().includes('medio')
-    ? PermissionDuration.HALF_DAY
-    : PermissionDuration.FULL_DAY;
+  // Determinar duración - buscar "medio" o "medio día"
+  let duration: PermissionDuration;
+  if (lowerDesc.includes('medio')) {
+    duration = PermissionDuration.HALF_DAY;
+  } else {
+    // Por defecto es día completo si no dice "medio"
+    duration = PermissionDuration.FULL_DAY;
+  }
 
-  // Extraer reason y description adicional si existen
+  // Extraer reason y description adicional
+  // El formato es: "Permiso/Falta [duración] - [reason] - [description]"
   const parts = description.split(' - ');
-  const reason = parts[1] || '';
-  const additionalDesc = parts[2] || '';
+  
+  // parts[0] es "Permiso medio día" o "Falta 1 día", etc.
+  // parts[1] es el reason (si existe)
+  // parts[2] es la descripción adicional (si existe)
+  
+  const reason = parts.length > 1 ? parts[1].trim() : '';
+  const additionalDesc = parts.length > 2 ? parts[2].trim() : '';
+
+  console.log('Parsing absence:', {
+    original: description,
+    type,
+    duration,
+    reason,
+    additionalDesc
+  });
 
   return { type, duration, reason, additionalDesc };
 };
@@ -108,6 +134,7 @@ const parseAbsenceData = (absence: AbsenceResponse) => {
 export function AbsencePermissionForm({
   employeeId,
   absence,
+  useReplaceMode = false,
   onSave,
   onCancel,
 }: AbsencePermissionFormProps) {
@@ -129,6 +156,15 @@ export function AbsencePermissionForm({
     if (absence) {
       const { type, duration, reason, additionalDesc } =
         parseAbsenceData(absence);
+      
+      console.log('Setting form values:', {
+        type,
+        date: absence.date,
+        duration,
+        reason,
+        description: additionalDesc
+      });
+
       form.reset({
         type,
         date: parseISO(absence.date),
@@ -173,23 +209,46 @@ export function AbsencePermissionForm({
       let savedAbsence: AbsenceResponse;
 
       if (isEditing) {
-        savedAbsence = await absenceService.patchAbsence(absence.id, {
+        const updateData = {
           type: values.type,
           duration: values.duration,
           date: format(values.date, 'yyyy-MM-dd'),
           description: detailedDescription,
           reason: values.reason,
-        });
+        };
 
-        toast.success('Permiso/Falta actualizado', {
-          description: (
-            <p className="text-slate-700 select-none">
-              {`Se actualizó correctamente. Descuento: ${formatCurrency(
-                savedAbsence.deductionAmount
-              )}`}
-            </p>
-          ),
-        });
+        // Usar replacePatchAbsence o patchAbsence según el modo
+        if (useReplaceMode) {
+          savedAbsence = await absenceService.replacePatchAbsence(
+            absence.id,
+            updateData
+          );
+          
+          toast.success('Permiso/Falta reemplazado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                {`Se reemplazó correctamente. Descuento: ${formatCurrency(
+                  savedAbsence.deductionAmount
+                )}`}
+              </p>
+            ),
+          });
+        } else {
+          savedAbsence = await absenceService.patchAbsence(
+            absence.id,
+            updateData
+          );
+
+          toast.success('Permiso/Falta actualizado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                {`Se actualizó correctamente. Descuento: ${formatCurrency(
+                  savedAbsence.deductionAmount
+                )}`}
+              </p>
+            ),
+          });
+        }
       } else {
         savedAbsence = await absenceService.createAbsence({
           employeeId,
@@ -228,13 +287,20 @@ export function AbsencePermissionForm({
       }
     } catch (error) {
       console.error('Error al guardar:', error);
-      toast.error(isEditing ? 'Error al actualizar' : 'Error al guardar', {
-        description: (
-          <p className="text-slate-700 select-none">
-            Ocurrió un error al intentar guardar.
-          </p>
-        ),
-      });
+      toast.error(
+        isEditing 
+          ? useReplaceMode 
+            ? 'Error al reemplazar' 
+            : 'Error al actualizar' 
+          : 'Error al guardar',
+        {
+          description: (
+            <p className="text-slate-700 select-none">
+              Ocurrió un error al intentar guardar.
+            </p>
+          ),
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -396,10 +462,14 @@ export function AbsencePermissionForm({
           <Button type="submit" disabled={loading} className="flex-1">
             {loading
               ? isEditing
-                ? 'Actualizando...'
+                ? useReplaceMode
+                  ? 'Reemplazando...'
+                  : 'Actualizando...'
                 : 'Registrando...'
               : isEditing
-              ? 'Actualizar'
+              ? useReplaceMode
+                ? 'Reemplazar'
+                : 'Actualizar'
               : 'Registrar'}
           </Button>
           {isEditing && onCancel && (

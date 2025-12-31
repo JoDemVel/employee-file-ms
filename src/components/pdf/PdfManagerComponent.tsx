@@ -5,6 +5,7 @@ import { Modal } from './Modal';
 import { Download, Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { FileWithUrlResponse } from '@/rest-client/interface/response/FileResponse';
+import { format } from 'date-fns';
 
 const PREDEFINED_SECTIONS = [
   { key: 'informacion-personal', title: 'Información Personal' },
@@ -73,11 +74,13 @@ const mapFileToStaticSections = (
 interface PdfManagerComponentProps {
   fileData?: FileWithUrlResponse;
   employeeId?: string;
+  employeeName?: string;
 }
 
 export const PdfManagerComponent = ({
   fileData,
   employeeId,
+  employeeName,
 }: PdfManagerComponentProps) => {
   const pdfMergeRef = useRef<PdfMergeReorderRef>(null);
   const [documents, setDocuments] = useState<DocumentGroup[]>([]);
@@ -122,7 +125,7 @@ export const PdfManagerComponent = ({
   const handleExportMerged = async () => {
     if (pdfMergeRef.current) {
       try {
-        await pdfMergeRef.current.exportMergedPdf('documento-fusionado.pdf');
+        await pdfMergeRef.current.exportMergedPdf(`FILE-${employeeName ?? employeeId ?? 'unknown'}-${format(new Date(), 'yyyyMMdd')}.pdf`);
       } catch (error) {
         console.error('Error exporting:', error);
       }

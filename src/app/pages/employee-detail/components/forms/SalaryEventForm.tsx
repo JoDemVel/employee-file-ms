@@ -60,6 +60,7 @@ type SalaryEventFormValues = z.infer<typeof formSchema>;
 interface SalaryEventFormProps {
   employeeId: string;
   salaryEvent?: SalaryEventResponse;
+  useReplaceMode?: boolean;
   onSave?: (salaryEvent: SalaryEventResponse) => void;
   onCancel?: () => void;
 }
@@ -67,6 +68,7 @@ interface SalaryEventFormProps {
 export function SalaryEventForm({
   employeeId,
   salaryEvent,
+  useReplaceMode = false,
   onSave,
   onCancel,
 }: SalaryEventFormProps) {
@@ -109,27 +111,45 @@ export function SalaryEventForm({
       let savedSalaryEvent: SalaryEventResponse;
 
       if (isEditing) {
-        savedSalaryEvent = await salaryEventService.patchSalaryEvent(
-          salaryEvent.id,
-          {
-            type: values.type,
-            description: values.description || undefined,
-            amount: values.amount,
-            frequency: values.frequency,
-            startDate: values.startDate.toISOString().split('T')[0],
-            endDate: values.endDate
-              ? values.endDate.toISOString().split('T')[0]
-              : undefined,
-          }
-        );
+        const updateData = {
+          type: values.type,
+          description: values.description || undefined,
+          amount: values.amount,
+          frequency: values.frequency,
+          startDate: values.startDate.toISOString().split('T')[0],
+          endDate: values.endDate
+            ? values.endDate.toISOString().split('T')[0]
+            : undefined,
+        };
 
-        toast.success('Evento salarial actualizado', {
-          description: (
-            <p className="text-slate-700 select-none">
-              Se actualizó correctamente
-            </p>
-          ),
-        });
+        // Usar replacePatchSalaryEvent o patchSalaryEvent según el modo
+        if (useReplaceMode) {
+          savedSalaryEvent = await salaryEventService.replacePatchSalaryEvent(
+            salaryEvent.id,
+            updateData
+          );
+
+          toast.success('Evento salarial reemplazado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                Se reemplazó correctamente
+              </p>
+            ),
+          });
+        } else {
+          savedSalaryEvent = await salaryEventService.patchSalaryEvent(
+            salaryEvent.id,
+            updateData
+          );
+
+          toast.success('Evento salarial actualizado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                Se actualizó correctamente
+              </p>
+            ),
+          });
+        }
       } else {
         savedSalaryEvent = await salaryEventService.createSalaryEvent({
           employeeId,
@@ -163,13 +183,20 @@ export function SalaryEventForm({
       }
     } catch (error) {
       console.error('Error al guardar evento salarial:', error);
-      toast.error('Error al guardar', {
-        description: (
-          <p className="text-slate-700 select-none">
-            Ocurrió un error al intentar guardar el evento salarial.
-          </p>
-        ),
-      });
+      toast.error(
+        isEditing
+          ? useReplaceMode
+            ? 'Error al reemplazar'
+            : 'Error al actualizar'
+          : 'Error al guardar',
+        {
+          description: (
+            <p className="text-slate-700 select-none">
+              Ocurrió un error al intentar guardar el evento salarial.
+            </p>
+          ),
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -310,10 +337,14 @@ export function SalaryEventForm({
           <Button type="submit" disabled={loading} className="flex-1">
             {loading
               ? isEditing
-                ? 'Actualizando...'
+                ? useReplaceMode
+                  ? 'Reemplazando...'
+                  : 'Actualizando...'
                 : 'Registrando...'
               : isEditing
-              ? 'Actualizar'
+              ? useReplaceMode
+                ? 'Reemplazar'
+                : 'Actualizar'
               : 'Registrar'}
           </Button>
           {isEditing && onCancel && (

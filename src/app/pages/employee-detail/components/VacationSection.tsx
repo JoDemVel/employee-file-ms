@@ -12,6 +12,7 @@ import {
   Edit2,
   Calendar,
   Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { VacationService } from '@/rest-client/services/VacationService';
 import type { VacationResponse } from '@/rest-client/interface/response/VacationResponse';
@@ -69,6 +70,17 @@ const calculateDays = (start: string, end: string): number => {
   return diffDays + 1;
 };
 
+// Función para determinar en qué mes está una vacación
+const getMonthsAgoFromDate = (dateString: string): number => {
+  const vacationDate = new Date(dateString);
+  const now = new Date();
+
+  const yearDiff = now.getFullYear() - vacationDate.getFullYear();
+  const monthDiff = now.getMonth() - vacationDate.getMonth();
+
+  return yearDiff * 12 + monthDiff;
+};
+
 const vacationService = new VacationService();
 
 export function VacationSection({
@@ -115,7 +127,32 @@ export function VacationSection({
     }
   };
 
-  const handleVacationSaved = (savedVacation: VacationResponse) => {
+  const reloadMonth = async (monthsAgo: number) => {
+    setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
+
+    try {
+      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const vacations = await vacationService.getVacationsByEmployee(
+        employeeId,
+        startDate,
+        endDate
+      );
+      setMonthlyVacations((prev) => new Map(prev).set(monthsAgo, vacations));
+    } catch (err) {
+      console.error(`Error reloading month ${monthsAgo}:`, err);
+      toast.error('Error al recargar', {
+        description: 'No se pudo actualizar los datos del mes',
+      });
+    } finally {
+      setLoadingMonths((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(monthsAgo);
+        return newSet;
+      });
+    }
+  };
+
+  const handleVacationSaved = async (savedVacation: VacationResponse) => {
     if (editingVacation) {
       // Actualizar vacación existente
       setCurrentVacations((prev) =>
@@ -129,7 +166,13 @@ export function VacationSection({
     setDialogOpen(false);
 
     // Refrescar la lista completa
-    fetchCurrentVacations();
+    await fetchCurrentVacations();
+
+    // Determinar el mes de la vacación y recargar si no es mes actual
+    const monthsAgo = getMonthsAgoFromDate(savedVacation.startDate);
+    if (monthsAgo > 0 && monthlyVacations.has(monthsAgo)) {
+      await reloadMonth(monthsAgo);
+    }
   };
 
   const handleEdit = (vacation: VacationResponse) => {
@@ -160,6 +203,15 @@ export function VacationSection({
           </p>
         ),
       });
+
+      // Recargar mes actual
+      await fetchCurrentVacations();
+
+      // Determinar el mes de la vacación eliminada y recargar si no es mes actual
+      const monthsAgo = getMonthsAgoFromDate(vacationToDelete.startDate);
+      if (monthsAgo > 0 && monthlyVacations.has(monthsAgo)) {
+        await reloadMonth(monthsAgo);
+      }
     } catch (error) {
       console.error('Error al eliminar vacación:', error);
       toast.error('Error al eliminar', {
@@ -255,8 +307,8 @@ export function VacationSection({
         </div>
       </div>
 
-      {isCurrentMonth && (
-        <div className="flex gap-2 flex-shrink-0 ml-2">
+      <div className="flex gap-2 flex-shrink-0 ml-2">
+        {isCurrentMonth && (
           <Button
             size="sm"
             variant="ghost"
@@ -265,17 +317,17 @@ export function VacationSection({
           >
             <Edit2 className="h-4 w-4" />
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => handleDeleteClick(vacation)}
-            title="Eliminar"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+        )}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => handleDeleteClick(vacation)}
+          title="Eliminar"
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 
@@ -379,7 +431,7 @@ export function VacationSection({
           </span>
           <Separator />
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {currentVacations.map((vacation) =>
               renderVacationCard(vacation, true)
             )}
@@ -411,18 +463,34 @@ export function VacationSection({
 
           return (
             <div key={monthsAgo} className="border rounded-xl">
-              <Button
-                variant="ghost"
-                className="w-full justify-between p-4 h-auto"
-                onClick={() => toggleMonth(monthsAgo)}
-              >
-                <span className="font-medium">{label}</span>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
+              <div className="flex items-center justify-between p-4">
+                <Button
+                  variant="ghost"
+                  className="flex-1 justify-between h-auto p-0"
+                  onClick={() => toggleMonth(monthsAgo)}
+                >
+                  <span className="font-medium">{label}</span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+                {isExpanded && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => reloadMonth(monthsAgo)}
+                    disabled={isLoading}
+                    className="ml-2"
+                    title="Recargar mes"
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                    />
+                  </Button>
                 )}
-              </Button>
+              </div>
 
               {isExpanded && (
                 <div className="p-4 pt-0">

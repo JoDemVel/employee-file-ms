@@ -12,6 +12,8 @@ import {
   Edit2,
   Trash2,
   CheckCircle2,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { AdvanceService } from '@/rest-client/services/AdvanceService';
 import type { AdvanceResponse } from '@/rest-client/interface/response/AdvanceResponse';
@@ -68,6 +70,17 @@ const getMonthRange = (monthsAgo: number) => {
   };
 };
 
+// Función para determinar en qué mes está un advance
+const getMonthsAgoFromDate = (dateString: string): number => {
+  const advanceDate = new Date(dateString);
+  const now = new Date();
+
+  const yearDiff = now.getFullYear() - advanceDate.getFullYear();
+  const monthDiff = now.getMonth() - advanceDate.getMonth();
+
+  return yearDiff * 12 + monthDiff;
+};
+
 const advanceService = new AdvanceService();
 
 export function AdvanceSection({
@@ -81,6 +94,7 @@ export function AdvanceSection({
   const [editingAdvance, setEditingAdvance] = useState<AdvanceResponse | null>(
     null
   );
+  const [useReplaceMode, setUseReplaceMode] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
   const [monthlyAdvances, setMonthlyAdvances] = useState<
     Map<number, AdvanceResponse[] | null>
@@ -90,6 +104,12 @@ export function AdvanceSection({
   const [advanceToDelete, setAdvanceToDelete] =
     useState<AdvanceResponse | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [processedWarningOpen, setProcessedWarningOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'edit' | 'delete';
+    advance: AdvanceResponse;
+    isCurrentMonth: boolean;
+  } | null>(null);
 
   useEffect(() => {
     fetchCurrentAdvances();
@@ -111,7 +131,32 @@ export function AdvanceSection({
     }
   };
 
-  const handleAdvanceSaved = (savedAdvance: AdvanceResponse) => {
+  const reloadMonth = async (monthsAgo: number) => {
+    setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
+
+    try {
+      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const advances = await advanceService.getAdvancesByEmployee(
+        employeeId,
+        startDate,
+        endDate
+      );
+      setMonthlyAdvances((prev) => new Map(prev).set(monthsAgo, advances));
+    } catch (err) {
+      console.error(`Error reloading month ${monthsAgo}:`, err);
+      toast.error('Error al recargar', {
+        description: 'No se pudo actualizar los datos del mes',
+      });
+    } finally {
+      setLoadingMonths((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(monthsAgo);
+        return newSet;
+      });
+    }
+  };
+
+  const handleAdvanceSaved = async (savedAdvance: AdvanceResponse) => {
     if (editingAdvance) {
       // Actualizar existente
       setCurrentAdvances((prev) =>
@@ -122,18 +167,62 @@ export function AdvanceSection({
       // Crear nuevo
       setCurrentAdvances([savedAdvance, ...currentAdvances]);
     }
+
     setDialogOpen(false);
-    fetchCurrentAdvances();
+    setUseReplaceMode(false);
+
+    // Recargar mes actual
+    await fetchCurrentAdvances();
+
+    // Determinar el mes del advance y recargar si no es mes actual
+    const monthsAgo = getMonthsAgoFromDate(savedAdvance.advanceDate);
+    if (monthsAgo > 0 && monthlyAdvances.has(monthsAgo)) {
+      await reloadMonth(monthsAgo);
+    }
   };
 
-  const handleEdit = (advance: AdvanceResponse) => {
+  const handleEdit = (
+    advance: AdvanceResponse,
+    isCurrentMonth: boolean = true
+  ) => {
+    // Si está procesado, mostrar advertencia primero
+    if (advance.processed) {
+      setPendingAction({ type: 'edit', advance, isCurrentMonth });
+      setProcessedWarningOpen(true);
+      return;
+    }
+
     setEditingAdvance(advance);
+    setUseReplaceMode(!isCurrentMonth);
     setDialogOpen(true);
   };
 
   const handleDeleteClick = (advance: AdvanceResponse) => {
+    // Si está procesado, mostrar advertencia primero
+    if (advance.processed) {
+      setPendingAction({ type: 'delete', advance, isCurrentMonth: true });
+      setProcessedWarningOpen(true);
+      return;
+    }
+
     setAdvanceToDelete(advance);
     setDeleteDialogOpen(true);
+  };
+
+  const handleProcessedWarningConfirm = () => {
+    if (!pendingAction) return;
+
+    if (pendingAction.type === 'edit') {
+      setEditingAdvance(pendingAction.advance);
+      setUseReplaceMode(!pendingAction.isCurrentMonth);
+      setDialogOpen(true);
+    } else if (pendingAction.type === 'delete') {
+      setAdvanceToDelete(pendingAction.advance);
+      setDeleteDialogOpen(true);
+    }
+
+    setProcessedWarningOpen(false);
+    setPendingAction(null);
   };
 
   const handleDeleteConfirm = async () => {
@@ -154,6 +243,15 @@ export function AdvanceSection({
           </p>
         ),
       });
+
+      // Recargar mes actual
+      await fetchCurrentAdvances();
+
+      // Determinar el mes del advance eliminado y recargar si no es mes actual
+      const monthsAgo = getMonthsAgoFromDate(advanceToDelete.advanceDate);
+      if (monthsAgo > 0 && monthlyAdvances.has(monthsAgo)) {
+        await reloadMonth(monthsAgo);
+      }
     } catch (error) {
       console.error('Error al eliminar adelanto:', error);
       toast.error('Error al eliminar', {
@@ -174,6 +272,7 @@ export function AdvanceSection({
     setDialogOpen(open);
     if (!open) {
       setEditingAdvance(null);
+      setUseReplaceMode(false);
     }
   };
 
@@ -224,7 +323,7 @@ export function AdvanceSection({
     <div
       key={advance.id}
       className={`flex items-center justify-between p-3 border rounded-lg ${
-        advance.processed ? 'bg-slate-50' : ''
+        advance.processed ? 'bg-slate-50 border-green-200' : ''
       }`}
     >
       <div className="flex items-center gap-3 flex-1">
@@ -259,32 +358,25 @@ export function AdvanceSection({
           )}
         </div>
 
-        {isCurrentMonth && !advance.processed && (
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleEdit(advance)}
-              title="Editar"
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleDeleteClick(advance)}
-              title="Eliminar"
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        {advance.processed && (
-          <div className="flex items-center text-xs text-muted-foreground ml-2">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleEdit(advance, isCurrentMonth)}
+            title={isCurrentMonth ? 'Editar' : 'Editar (reemplazar)'}
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleDeleteClick(advance)}
+            title="Eliminar"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -303,10 +395,18 @@ export function AdvanceSection({
   return (
     <section className="flex flex-col gap-6 p-4">
       <ReusableDialog
-        title={editingAdvance ? 'Editar Adelanto' : 'Registrar Adelanto'}
+        title={
+          editingAdvance
+            ? useReplaceMode
+              ? 'Editar Adelanto (Reemplazar)'
+              : 'Editar Adelanto'
+            : 'Registrar Adelanto'
+        }
         description={
           editingAdvance
-            ? 'Modifica los datos del adelanto'
+            ? useReplaceMode
+              ? 'Se eliminará y recreará el registro con los nuevos datos'
+              : 'Modifica los datos del adelanto'
             : 'Registra un nuevo adelanto para el empleado'
         }
         open={dialogOpen}
@@ -315,6 +415,7 @@ export function AdvanceSection({
         <AdvanceForm
           employeeId={employeeId}
           advance={editingAdvance || undefined}
+          useReplaceMode={useReplaceMode}
           onSave={handleAdvanceSaved}
           onCancel={() => handleDialogChange(false)}
         />
@@ -337,6 +438,50 @@ export function AdvanceSection({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={processedWarningOpen}
+        onOpenChange={setProcessedWarningOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Adelanto ya procesado
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Este adelanto ya fue procesado en una planilla anterior.</p>
+              <p className="font-medium text-amber-600">
+                ⚠️ Si realizas cambios, deberás recalcular la planilla de ese
+                mes para ver los cambios reflejados.
+              </p>
+              <p className="text-sm">
+                ¿Deseas continuar con{' '}
+                {pendingAction?.type === 'edit'
+                  ? 'la edición'
+                  : 'la eliminación'}
+                ?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setProcessedWarningOpen(false);
+                setPendingAction(null);
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleProcessedWarningConfirm}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Continuar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -389,7 +534,7 @@ export function AdvanceSection({
           </span>
           <Separator />
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {currentAdvances.map((advance) => renderAdvanceCard(advance, true))}
           </div>
         </section>
@@ -419,18 +564,34 @@ export function AdvanceSection({
 
           return (
             <div key={monthsAgo} className="border rounded-xl">
-              <Button
-                variant="ghost"
-                className="w-full justify-between p-4 h-auto"
-                onClick={() => toggleMonth(monthsAgo)}
-              >
-                <span className="font-medium">{label}</span>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
+              <div className="flex items-center justify-between p-4">
+                <Button
+                  variant="ghost"
+                  className="flex-1 justify-between h-auto p-0"
+                  onClick={() => toggleMonth(monthsAgo)}
+                >
+                  <span className="font-medium">{label}</span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+                {isExpanded && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => reloadMonth(monthsAgo)}
+                    disabled={isLoading}
+                    className="ml-2"
+                    title="Recargar mes"
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                    />
+                  </Button>
                 )}
-              </Button>
+              </div>
 
               {isExpanded && (
                 <div className="p-4 pt-0">

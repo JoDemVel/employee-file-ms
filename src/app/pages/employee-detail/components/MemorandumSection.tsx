@@ -13,6 +13,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { MemorandumService } from '@/rest-client/services/MemorandumService';
 import type { MemorandumResponse } from '@/rest-client/interface/response/MemorandumResponse';
@@ -62,6 +63,17 @@ const getMonthRange = (monthsAgo: number) => {
   };
 };
 
+// Función para determinar en qué mes está un memorándum
+const getMonthsAgoFromDate = (dateString: string): number => {
+  const memorandumDate = new Date(dateString);
+  const now = new Date();
+
+  const yearDiff = now.getFullYear() - memorandumDate.getFullYear();
+  const monthDiff = now.getMonth() - memorandumDate.getMonth();
+
+  return yearDiff * 12 + monthDiff;
+};
+
 const memorandumService = new MemorandumService();
 
 export function MemorandumSection({
@@ -108,7 +120,34 @@ export function MemorandumSection({
     }
   };
 
-  const handleMemorandumSaved = (savedMemorandum: MemorandumResponse) => {
+  const reloadMonth = async (monthsAgo: number) => {
+    setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
+
+    try {
+      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const memorandums = await memorandumService.getMemorandumsByEmployee(
+        employeeId,
+        startDate,
+        endDate
+      );
+      setMonthlyMemorandums((prev) =>
+        new Map(prev).set(monthsAgo, memorandums)
+      );
+    } catch (err) {
+      console.error(`Error reloading month ${monthsAgo}:`, err);
+      toast.error('Error al recargar', {
+        description: 'No se pudo actualizar los datos del mes',
+      });
+    } finally {
+      setLoadingMonths((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(monthsAgo);
+        return newSet;
+      });
+    }
+  };
+
+  const handleMemorandumSaved = async (savedMemorandum: MemorandumResponse) => {
     if (editingMemorandum) {
       setCurrentMemorandums((prev) =>
         prev.map((m) => (m.id === savedMemorandum.id ? savedMemorandum : m))
@@ -118,7 +157,15 @@ export function MemorandumSection({
       setCurrentMemorandums([savedMemorandum, ...currentMemorandums]);
     }
     setDialogOpen(false);
-    fetchCurrentMemorandums();
+
+    // Recargar mes actual
+    await fetchCurrentMemorandums();
+
+    // Determinar el mes del memorándum y recargar si no es mes actual
+    const monthsAgo = getMonthsAgoFromDate(savedMemorandum.memorandumDate);
+    if (monthsAgo > 0 && monthlyMemorandums.has(monthsAgo)) {
+      await reloadMonth(monthsAgo);
+    }
   };
 
   const handleEdit = (memorandum: MemorandumResponse) => {
@@ -149,6 +196,15 @@ export function MemorandumSection({
           </p>
         ),
       });
+
+      // Recargar mes actual
+      await fetchCurrentMemorandums();
+
+      // Determinar el mes del memorándum eliminado y recargar si no es mes actual
+      const monthsAgo = getMonthsAgoFromDate(memorandumToDelete.memorandumDate);
+      if (monthsAgo > 0 && monthlyMemorandums.has(monthsAgo)) {
+        await reloadMonth(monthsAgo);
+      }
     } catch (error) {
       console.error('Error al eliminar memorándum:', error);
       toast.error('Error al eliminar', {
@@ -278,7 +334,6 @@ export function MemorandumSection({
             variant="destructive"
             onClick={() => handleDeleteClick(memorandum)}
             title="Eliminar"
-            className=""
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -400,7 +455,7 @@ export function MemorandumSection({
           </span>
           <Separator />
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {currentMemorandums.map((memorandum) =>
               renderMemorandumCard(memorandum, true)
             )}
@@ -432,18 +487,34 @@ export function MemorandumSection({
 
           return (
             <div key={monthsAgo} className="border rounded-xl">
-              <Button
-                variant="ghost"
-                className="w-full justify-between p-4 h-auto"
-                onClick={() => toggleMonth(monthsAgo)}
-              >
-                <span className="font-medium">{label}</span>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
+              <div className="flex items-center justify-between p-4">
+                <Button
+                  variant="ghost"
+                  className="flex-1 justify-between h-auto p-0"
+                  onClick={() => toggleMonth(monthsAgo)}
+                >
+                  <span className="font-medium">{label}</span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+                {isExpanded && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => reloadMonth(monthsAgo)}
+                    disabled={isLoading}
+                    className="ml-2"
+                    title="Recargar mes"
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+                    />
+                  </Button>
                 )}
-              </Button>
+              </div>
 
               {isExpanded && (
                 <div className="p-4 pt-0">

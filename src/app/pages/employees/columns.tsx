@@ -30,19 +30,24 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
     },
   },
   {
-    accessorKey: 'department',
+    accessorKey: 'departmentName',
     header: DataTableColumnsTexts.department,
     cell: ({ row }) => {
       const { departmentName } = row.original;
 
-      return <span className="text-muted-foreground">{departmentName}</span>;
+      return (
+        <span className="text-muted-foreground">
+          {departmentName ?? 'No definido'}
+        </span>
+      );
     },
   },
   {
     accessorKey: 'positionName',
     header: DataTableColumnsTexts.position,
     cell: ({ row }) => {
-      const position = row.getValue('positionName') as string;
+      const position =
+        (row.getValue('positionName') as string) ?? 'No definido';
       return (
         <span className="text-muted-foreground">
           {position?.charAt(0).toUpperCase() + position?.slice(1)}

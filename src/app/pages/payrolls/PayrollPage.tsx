@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Calculator } from 'lucide-react';
+import { RefreshCw, Calculator, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DataTable } from '@/app/shared/components/DataTable';
 import { PayrollService } from '@/rest-client/services/PayrollService';
@@ -32,23 +32,23 @@ import {
 import { currentColumns, historicalColumns } from './columns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmployeeFilters } from '../employees/EmployeeFilters';
+import { formatCurrency, generatePDF } from './functions/generatePdf';
 
 const payrollService = new PayrollService();
 const paymentService = new PaymentService();
+
+const deductionLabels: Record<string, string> = {
+  PERMISSION: 'Permisos',
+  ABSENCE: 'Faltas',
+  ADVANCE: 'Adelantos',
+  RC_IVA: 'RC-IVA',
+};
 
 const formatMonthYear = (date: Date) => {
   return date.toLocaleDateString('es-BO', {
     year: 'numeric',
     month: 'long',
   });
-};
-
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('es-BO', {
-    style: 'currency',
-    currency: 'BOB',
-    minimumFractionDigits: 2,
-  }).format(amount);
 };
 
 const getPeriodInfo = (monthsAgo: number) => {
@@ -241,6 +241,26 @@ export default function PayrollsPage() {
     }
   };
 
+  const handlePrintCurrent = () => {
+    if (!currentData) return;
+    generatePDF(
+      currentData.payrolls,
+      currentData.totals,
+      `Nómina - Mes Actual [${formatMonthYear(new Date())}]`
+    );
+  };
+
+  const handlePrintHistorical = () => {
+    if (!historicalData) return;
+    const periodLabel = periods.find((p) => p.value === selectedPeriod)?.label;
+    generatePDF(
+      historicalData.payments,
+      historicalData.totals,
+      `Nómina - ${periodLabel}`,
+      selectedPeriod
+    );
+  };
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between mb-6">
@@ -281,19 +301,29 @@ export default function PayrollsPage() {
                   showDebounceIndicator={true}
                   className="flex-1"
                 />
-                <Button
-                  onClick={fetchCurrentPayrolls}
-                  variant="outline"
-                  size="icon"
-                  disabled={currentLoading}
-                  className="flex-shrink-0"
-                >
-                  <RefreshCw
-                    className={`h-4 w-4 ${
-                      currentLoading ? 'animate-spin' : ''
-                    }`}
-                  />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handlePrintCurrent}
+                    variant="outline"
+                    size="icon"
+                    disabled={currentLoading || !currentData}
+                    title="Imprimir PDF"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={fetchCurrentPayrolls}
+                    variant="outline"
+                    size="icon"
+                    disabled={currentLoading}
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 ${
+                        currentLoading ? 'animate-spin' : ''
+                      }`}
+                    />
+                  </Button>
+                </div>
               </div>
 
               <div className="rounded-lg bg-card">
@@ -329,7 +359,26 @@ export default function PayrollsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {/* Bonos */}
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Bonos Antigüedad
+                        </p>
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatCurrency(
+                            currentData.totals.totalSeniorityBonuses
+                          )}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Otros Bonos
+                        </p>
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatCurrency(currentData.totals.totalOtherBonuses)}
+                        </p>
+                      </div>
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">
                           Total Bonos
@@ -346,6 +395,33 @@ export default function PayrollsPage() {
                           {formatCurrency(currentData.totals.totalEarnings)}
                         </p>
                       </div>
+
+                      {/* Descuentos */}
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Descuentos AFP
+                        </p>
+                        <p className="text-lg font-semibold text-red-600">
+                          {formatCurrency(
+                            currentData.totals.totalAfpDeductions
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Descuentos dinámicos */}
+                      {Object.entries(currentData.totals.deductions).map(
+                        ([key, value]) => (
+                          <div key={key} className="space-y-1">
+                            <p className="text-sm text-muted-foreground">
+                              {deductionLabels[key]}
+                            </p>
+                            <p className="text-lg font-semibold text-red-600">
+                              {formatCurrency(value)}
+                            </p>
+                          </div>
+                        )
+                      )}
+
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">
                           Total Descuentos
@@ -354,7 +430,9 @@ export default function PayrollsPage() {
                           {formatCurrency(currentData.totals.totalDeductions)}
                         </p>
                       </div>
-                      <div className="space-y-1">
+
+                      {/* Total líquido destacado */}
+                      <div className="space-y-1 md:col-span-2 lg:col-span-1">
                         <p className="text-sm text-muted-foreground">
                           Total Líquido Pagable
                         </p>
@@ -456,6 +534,17 @@ export default function PayrollsPage() {
                     </span>
                   </Button>
                   <Button
+                    onClick={handlePrintHistorical}
+                    variant="outline"
+                    size="icon"
+                    disabled={
+                      historicalLoading || reprocessing || !historicalData
+                    }
+                    title="Imprimir PDF"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                  <Button
                     onClick={fetchHistoricalPayments}
                     variant="outline"
                     size="icon"
@@ -479,7 +568,7 @@ export default function PayrollsPage() {
                 />
               </div>
 
-              <div className="rounded-lg border bg-card">
+              <div>
                 <DataTable
                   columns={historicalColumns}
                   data={historicalData?.payments ?? []}
@@ -501,7 +590,28 @@ export default function PayrollsPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {/* Bonos */}
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Bonos Antigüedad
+                        </p>
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatCurrency(
+                            historicalData.totals.totalSeniorityBonuses
+                          )}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Otros Bonos
+                        </p>
+                        <p className="text-lg font-semibold text-green-600">
+                          {formatCurrency(
+                            historicalData.totals.totalOtherBonuses
+                          )}
+                        </p>
+                      </div>
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">
                           Total Bonos
@@ -518,6 +628,33 @@ export default function PayrollsPage() {
                           {formatCurrency(historicalData.totals.totalEarnings)}
                         </p>
                       </div>
+
+                      {/* Descuentos */}
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">
+                          Descuentos AFP
+                        </p>
+                        <p className="text-lg font-semibold text-red-600">
+                          {formatCurrency(
+                            historicalData.totals.totalAfpDeductions
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Descuentos dinámicos */}
+                      {Object.entries(historicalData.totals.deductions).map(
+                        ([key, value]) => (
+                          <div key={key} className="space-y-1">
+                            <p className="text-sm text-muted-foreground">
+                              {deductionLabels[key]}
+                            </p>
+                            <p className="text-lg font-semibold text-red-600">
+                              {formatCurrency(value)}
+                            </p>
+                          </div>
+                        )
+                      )}
+
                       <div className="space-y-1">
                         <p className="text-sm text-muted-foreground">
                           Total Descuentos
@@ -528,7 +665,9 @@ export default function PayrollsPage() {
                           )}
                         </p>
                       </div>
-                      <div className="space-y-1">
+
+                      {/* Total líquido destacado */}
+                      <div className="space-y-1 md:col-span-2 lg:col-span-1">
                         <p className="text-sm text-muted-foreground">
                           Total Líquido Pagable
                         </p>

@@ -33,6 +33,10 @@ export class SalaryEventService {
     return httpClient.patch<SalaryEventResponse>(`${this.BASE_URL}/${id}`, salaryEventUpdateRequest);
   }
 
+  async replacePatchSalaryEvent(id: string, salaryEventUpdateRequest: Partial<SalaryEventUpdateRequest>): Promise<SalaryEventResponse> {
+    return httpClient.patch<SalaryEventResponse>(`${this.BASE_URL}/${id}/replace`, salaryEventUpdateRequest);
+  }
+
   async deleteSalaryEvent(id: string): Promise<void> {
     return httpClient.delete<void>(`${this.BASE_URL}/${id}`);
   }

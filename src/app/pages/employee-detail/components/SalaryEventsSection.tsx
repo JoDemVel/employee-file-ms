@@ -14,6 +14,8 @@ import {
   TrendingDown,
   Trash2,
   CheckCircle2,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { SalaryEventService } from '@/rest-client/services/SalaryEventService';
 import type { SalaryEventResponse } from '@/rest-client/interface/response/SalaryEventResponse';
@@ -70,6 +72,17 @@ const getMonthRange = (monthsAgo: number) => {
   };
 };
 
+// Función para determinar en qué mes está un salary event
+const getMonthsAgoFromDate = (dateString: string): number => {
+  const eventDate = new Date(dateString);
+  const now = new Date();
+  
+  const yearDiff = now.getFullYear() - eventDate.getFullYear();
+  const monthDiff = now.getMonth() - eventDate.getMonth();
+  
+  return yearDiff * 12 + monthDiff;
+};
+
 const salaryEventService = new SalaryEventService();
 
 export function SalaryEventsSection({
@@ -84,6 +97,7 @@ export function SalaryEventsSection({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSalaryEvent, setEditingSalaryEvent] =
     useState<SalaryEventResponse | null>(null);
+  const [useReplaceMode, setUseReplaceMode] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
   const [monthlySalaryEvents, setMonthlySalaryEvents] = useState<
     Map<number, SalaryEventResponse[] | null>
@@ -93,6 +107,12 @@ export function SalaryEventsSection({
   const [salaryEventToDelete, setSalaryEventToDelete] =
     useState<SalaryEventResponse | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [processedWarningOpen, setProcessedWarningOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'edit' | 'delete';
+    salaryEvent: SalaryEventResponse;
+    isCurrentMonth: boolean;
+  } | null>(null);
 
   useEffect(() => {
     fetchCurrentSalaryEvents();
@@ -119,7 +139,38 @@ export function SalaryEventsSection({
     }
   };
 
-  const handleSalaryEventSaved = (savedSalaryEvent: SalaryEventResponse) => {
+  const reloadMonth = async (monthsAgo: number) => {
+    setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
+
+    try {
+      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const salaryEvents = await salaryEventService.getSalaryEventsByEmployeeId(
+        employeeId,
+        'MANUAL',
+        startDate,
+        endDate
+      );
+      setMonthlySalaryEvents((prev) =>
+        new Map(prev).set(monthsAgo, salaryEvents)
+      );
+      toast.success('Mes actualizado', {
+        description: 'Los datos se han recargado correctamente',
+      });
+    } catch (err) {
+      console.error(`Error reloading month ${monthsAgo}:`, err);
+      toast.error('Error al recargar', {
+        description: 'No se pudo actualizar los datos del mes',
+      });
+    } finally {
+      setLoadingMonths((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(monthsAgo);
+        return newSet;
+      });
+    }
+  };
+
+  const handleSalaryEventSaved = async (savedSalaryEvent: SalaryEventResponse) => {
     if (editingSalaryEvent) {
       setCurrentSalaryEvents((prev) =>
         prev.map((e) => (e.id === savedSalaryEvent.id ? savedSalaryEvent : e))
@@ -128,18 +179,59 @@ export function SalaryEventsSection({
     } else {
       setCurrentSalaryEvents([savedSalaryEvent, ...currentSalaryEvents]);
     }
+    
     setDialogOpen(false);
-    fetchCurrentSalaryEvents();
+    setUseReplaceMode(false);
+    
+    // Recargar mes actual
+    await fetchCurrentSalaryEvents();
+    
+    // Determinar el mes del salary event y recargar si no es mes actual
+    const monthsAgo = getMonthsAgoFromDate(savedSalaryEvent.startDate);
+    if (monthsAgo > 0 && monthlySalaryEvents.has(monthsAgo)) {
+      await reloadMonth(monthsAgo);
+    }
   };
 
-  const handleEdit = (salaryEvent: SalaryEventResponse) => {
+  const handleEdit = (salaryEvent: SalaryEventResponse, isCurrentMonth: boolean = true) => {
+    // Si está procesado, mostrar advertencia primero
+    if (salaryEvent.processed) {
+      setPendingAction({ type: 'edit', salaryEvent, isCurrentMonth });
+      setProcessedWarningOpen(true);
+      return;
+    }
+    
     setEditingSalaryEvent(salaryEvent);
+    setUseReplaceMode(!isCurrentMonth);
     setDialogOpen(true);
   };
 
   const handleDeleteClick = (salaryEvent: SalaryEventResponse) => {
+    // Si está procesado, mostrar advertencia primero
+    if (salaryEvent.processed) {
+      setPendingAction({ type: 'delete', salaryEvent, isCurrentMonth: true });
+      setProcessedWarningOpen(true);
+      return;
+    }
+    
     setSalaryEventToDelete(salaryEvent);
     setDeleteDialogOpen(true);
+  };
+
+  const handleProcessedWarningConfirm = () => {
+    if (!pendingAction) return;
+    
+    if (pendingAction.type === 'edit') {
+      setEditingSalaryEvent(pendingAction.salaryEvent);
+      setUseReplaceMode(!pendingAction.isCurrentMonth);
+      setDialogOpen(true);
+    } else if (pendingAction.type === 'delete') {
+      setSalaryEventToDelete(pendingAction.salaryEvent);
+      setDeleteDialogOpen(true);
+    }
+    
+    setProcessedWarningOpen(false);
+    setPendingAction(null);
   };
 
   const handleDeleteConfirm = async () => {
@@ -160,6 +252,15 @@ export function SalaryEventsSection({
           </p>
         ),
       });
+
+      // Recargar mes actual
+      await fetchCurrentSalaryEvents();
+      
+      // Determinar el mes del salary event eliminado y recargar si no es mes actual
+      const monthsAgo = getMonthsAgoFromDate(salaryEventToDelete.startDate);
+      if (monthsAgo > 0 && monthlySalaryEvents.has(monthsAgo)) {
+        await reloadMonth(monthsAgo);
+      }
     } catch (error) {
       console.error('Error al eliminar evento salarial:', error);
       toast.error('Error al eliminar', {
@@ -180,6 +281,7 @@ export function SalaryEventsSection({
     setDialogOpen(open);
     if (!open) {
       setEditingSalaryEvent(null);
+      setUseReplaceMode(false);
     }
   };
 
@@ -244,7 +346,7 @@ export function SalaryEventsSection({
       ? 'bg-green-50'
       : 'bg-red-50';
     const borderColor = salaryEvent.processed
-      ? 'border-slate-200'
+      ? 'border-green-200'
       : isBonus
       ? 'border-green-200'
       : 'border-red-200';
@@ -309,31 +411,23 @@ export function SalaryEventsSection({
         </div>
 
         <div className="flex gap-2 flex-shrink-0 ml-2">
-          {isCurrentMonth && !salaryEvent.processed && (
-            <>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleEdit(salaryEvent)}
-                title="Editar"
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => handleDeleteClick(salaryEvent)}
-                title="Eliminar"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-          {salaryEvent.processed && (
-            <div className="flex items-center text-xs text-muted-foreground">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-            </div>
-          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleEdit(salaryEvent, isCurrentMonth)}
+            title={isCurrentMonth ? "Editar" : "Editar (reemplazar)"}
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => handleDeleteClick(salaryEvent)}
+            title="Eliminar"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     );
@@ -355,12 +449,16 @@ export function SalaryEventsSection({
       <ReusableDialog
         title={
           editingSalaryEvent
-            ? 'Editar Evento Salarial'
+            ? useReplaceMode
+              ? 'Editar Evento Salarial (Reemplazar)'
+              : 'Editar Evento Salarial'
             : 'Registrar Evento Salarial'
         }
         description={
           editingSalaryEvent
-            ? 'Modifica los datos del evento salarial'
+            ? useReplaceMode
+              ? 'Se eliminará y recreará el registro con los nuevos datos'
+              : 'Modifica los datos del evento salarial'
             : 'Registra un nuevo evento salarial para el empleado'
         }
         open={dialogOpen}
@@ -369,6 +467,7 @@ export function SalaryEventsSection({
         <SalaryEventForm
           employeeId={employeeId}
           salaryEvent={editingSalaryEvent || undefined}
+          useReplaceMode={useReplaceMode}
           onSave={handleSalaryEventSaved}
           onCancel={() => handleDialogChange(false)}
         />
@@ -391,6 +490,42 @@ export function SalaryEventsSection({
               className="bg-destructive/85 text-destructive-foreground hover:bg-destructive text-slate-100"
             >
               {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={processedWarningOpen} onOpenChange={setProcessedWarningOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Evento salarial ya procesado
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Este evento salarial ya fue procesado en una planilla anterior.
+              </p>
+              <p className="font-medium text-amber-600">
+                ⚠️ Si realizas cambios, deberás recalcular la planilla de ese mes para ver los cambios reflejados.
+              </p>
+              <p className="text-sm">
+                ¿Deseas continuar con {pendingAction?.type === 'edit' ? 'la edición' : 'la eliminación'}?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setProcessedWarningOpen(false);
+              setPendingAction(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleProcessedWarningConfirm}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Continuar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -462,7 +597,7 @@ export function SalaryEventsSection({
           <span className="text-lg font-semibold">Eventos del mes actual</span>
           <Separator />
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {currentSalaryEvents.map((salaryEvent) =>
               renderSalaryEventCard(salaryEvent, true)
             )}
@@ -494,18 +629,32 @@ export function SalaryEventsSection({
 
           return (
             <div key={monthsAgo} className="border rounded-xl">
-              <Button
-                variant="ghost"
-                className="w-full justify-between p-4 h-auto"
-                onClick={() => toggleMonth(monthsAgo)}
-              >
-                <span className="font-medium">{label}</span>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
+              <div className="flex items-center justify-between p-4">
+                <Button
+                  variant="ghost"
+                  className="flex-1 justify-between h-auto p-0"
+                  onClick={() => toggleMonth(monthsAgo)}
+                >
+                  <span className="font-medium">{label}</span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+                {isExpanded && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => reloadMonth(monthsAgo)}
+                    disabled={isLoading}
+                    className="ml-2"
+                    title="Recargar mes"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  </Button>
                 )}
-              </Button>
+              </div>
 
               {isExpanded && (
                 <div className="p-4 pt-0">

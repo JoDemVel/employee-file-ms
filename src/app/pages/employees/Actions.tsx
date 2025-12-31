@@ -30,6 +30,10 @@ export function Actions({ employee }: { employee: EmployeeResponse }) {
     setDialogEditOpen(false);
   };
 
+  const handleViewHistory = () => {
+    navigate(`/employees/${employee.id}/history`);
+  }
+
   return (
     <>
       <ReusableDialog
@@ -61,6 +65,9 @@ export function Actions({ employee }: { employee: EmployeeResponse }) {
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setDialogEditOpen(true)}>
             {DataTableColumnsTexts.editUser}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={handleViewHistory}>
+            Ver Historial
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

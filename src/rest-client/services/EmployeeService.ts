@@ -2,7 +2,7 @@ import { httpClient } from '../http-client';
 import type { Page } from '../interface/Page';
 import type { EmployeeCreateRequest } from '../interface/request/EmployeeCreateRequest';
 import type { EmployeeSearchParams } from '../interface/request/EmployeeSearchParams';
-import type { EmployeeUpdateRequest } from '../interface/request/EmployeeUpdateRequest';
+import type { EmployeeChangeCompanyRequest, EmployeeUpdateRequest } from '../interface/request/EmployeeUpdateRequest';
 import type { EmployeeResponse } from '../interface/response/EmployeeResponse';
 
 export class EmployeeService {
@@ -61,5 +61,12 @@ export class EmployeeService {
 
   async associateEmployee(employeeId: string): Promise<EmployeeResponse> {
     return httpClient.patch<EmployeeResponse>(`${this.BASE_URL}/${employeeId}/associate`, {});
+  }
+
+  async changeEmployeeCompany(employeeId: string, changeCompanyRequest: EmployeeChangeCompanyRequest): Promise<EmployeeResponse> {
+    return httpClient.patch<EmployeeResponse>(
+      `${this.BASE_URL}/${employeeId}/change-company`,
+      changeCompanyRequest
+    );
   }
 }

@@ -22,3 +22,8 @@ export interface EmergencyContactRequest {
   phone: string;
   address: string;
 }
+
+export interface EmployeeChangeCompanyRequest {
+  newCompanyId: string;
+  reason?: string;
+}

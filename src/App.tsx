@@ -9,6 +9,7 @@ import { Toaster } from './components/ui/sonner';
 import ConfigPage from './app/pages/config/ConfigPage';
 import { BranchesPage } from './app/pages/branches/BranchesPage';
 import PayrollsPage from './app/pages/payrolls/PayrollPage';
+import EmployeeHistoryPage from './app/pages/employee-history/EmployeeHistoryPage';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             path="/employees/:employeeId"
             element={<EmployeeDetailPage />}
           />
+          <Route path="/employees/:employeeId/history" element={<EmployeeHistoryPage />} />
           <Route path="/salary" element={<PayrollsPage />} />
           <Route path="/branch" element={<BranchesPage />} />
           <Route path="/departments" element={<DepartmentsPage />} />

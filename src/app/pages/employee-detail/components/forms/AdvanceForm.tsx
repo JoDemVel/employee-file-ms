@@ -39,6 +39,7 @@ type AdvanceFormValues = z.infer<typeof formSchema>;
 interface AdvanceFormProps {
   employeeId: string;
   advance?: AdvanceResponse;
+  useReplaceMode?: boolean;
   onSave?: (advance: AdvanceResponse) => void;
   onCancel?: () => void;
 }
@@ -53,6 +54,7 @@ const formatCurrency = (value: number) =>
 export function AdvanceForm({
   employeeId,
   advance,
+  useReplaceMode = false,
   onSave,
   onCancel,
 }: AdvanceFormProps) {
@@ -88,20 +90,43 @@ export function AdvanceForm({
       let savedAdvance: AdvanceResponse;
 
       if (isEditing) {
-        savedAdvance = await advanceService.patchAdvance(advance.id, {
+        const updateData = {
           amount: values.amount,
           advanceDate: format(values.advanceDate, 'yyyy-MM-dd'),
-        });
+        };
 
-        toast.success('Adelanto actualizado', {
-          description: (
-            <p className="text-slate-700 select-none">
-              {`Se actualizó correctamente. Monto: ${formatCurrency(
-                savedAdvance.amount
-              )}`}
-            </p>
-          ),
-        });
+        // Usar replacePatchAdvance o patchAdvance según el modo
+        if (useReplaceMode) {
+          savedAdvance = await advanceService.replacePatchAdvance(
+            advance.id,
+            updateData
+          );
+
+          toast.success('Adelanto reemplazado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                {`Se reemplazó correctamente. Monto: ${formatCurrency(
+                  savedAdvance.amount
+                )}`}
+              </p>
+            ),
+          });
+        } else {
+          savedAdvance = await advanceService.patchAdvance(
+            advance.id,
+            updateData
+          );
+
+          toast.success('Adelanto actualizado', {
+            description: (
+              <p className="text-slate-700 select-none">
+                {`Se actualizó correctamente. Monto: ${formatCurrency(
+                  savedAdvance.amount
+                )}`}
+              </p>
+            ),
+          });
+        }
       } else {
         savedAdvance = await advanceService.createAdvance({
           employeeId,
@@ -132,13 +157,20 @@ export function AdvanceForm({
       }
     } catch (error) {
       console.error('Error al guardar adelanto:', error);
-      toast.error(isEditing ? 'Error al actualizar' : 'Error al registrar', {
-        description: (
-          <p className="text-slate-700 select-none">
-            Ocurrió un error al intentar guardar el adelanto.
-          </p>
-        ),
-      });
+      toast.error(
+        isEditing 
+          ? useReplaceMode 
+            ? 'Error al reemplazar' 
+            : 'Error al actualizar' 
+          : 'Error al registrar',
+        {
+          description: (
+            <p className="text-slate-700 select-none">
+              Ocurrió un error al intentar guardar el adelanto.
+            </p>
+          ),
+        }
+      );
     } finally {
       setLoading(false);
     }
@@ -203,7 +235,6 @@ export function AdvanceForm({
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
-                    autoFocus
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
@@ -222,10 +253,14 @@ export function AdvanceForm({
           <Button type="submit" disabled={loading} className="flex-1">
             {loading
               ? isEditing
-                ? 'Actualizando...'
+                ? useReplaceMode
+                  ? 'Reemplazando...'
+                  : 'Actualizando...'
                 : 'Registrando...'
               : isEditing
-              ? 'Actualizar'
+              ? useReplaceMode
+                ? 'Reemplazar'
+                : 'Actualizar'
               : 'Registrar'}
           </Button>
           {isEditing && onCancel && (

@@ -33,6 +33,7 @@ class HttpClient {
             if (companyId) {
               config.headers['X-Company-Id'] = companyId;
             }
+            config.headers['X-USER-NAME'] = parsed.state?.userName ?? 'UNKNOWN';
           } catch (error) {
             console.error('Error parsing config store:', error);
           }

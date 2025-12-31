@@ -26,6 +26,13 @@ export class AbsenceService {
     );
   }
 
+  async replacePatchAbsence(absenceId: string, absenceUpdateRequest: Partial<AbsenceUpdateRequest>): Promise<AbsenceResponse> {
+    return httpClient.patch<AbsenceResponse>(
+      `${this.BASE_URL}/${absenceId}/replace`,
+      absenceUpdateRequest
+    );
+  }
+
   async deleteAbsence(absenceId: string): Promise<void> {
     return httpClient.delete<void>(`${this.BASE_URL}/${absenceId}`);
   }

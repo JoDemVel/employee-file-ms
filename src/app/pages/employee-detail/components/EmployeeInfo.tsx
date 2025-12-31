@@ -2,46 +2,101 @@ import { ReusableDialog } from '@/app/shared/components/ReusableDialog';
 import { StatusBadge } from '@/app/shared/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { EmployeeDetailsTexts } from '@/constants/localize';
 import { formatDate, formatDateHireDate } from '@/lib/formatters';
 import {
   Briefcase,
   Calendar,
+  FileText,
   Mail,
   Phone,
   UserRound,
+  Building2,
 } from 'lucide-react';
 import EmployeeForm from '../../employees/EmployeeForm';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { EmployeeResponse } from '@/rest-client/interface/response/EmployeeResponse';
+import type { CompanyResponse } from '@/rest-client/interface/response/CompanyResponse';
+import { useNavigate } from 'react-router';
+import { EmployeeService } from '@/rest-client/services/EmployeeService';
+import { CompanyService } from '@/rest-client/services/CompanyService';
+import { toast } from 'sonner';
 
 export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
   const { firstName, lastName, positionName, departmentName, hireDate, email } =
     employee;
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [changeCompanyDialogOpen, setChangeCompanyDialogOpen] = useState(false);
+  const [companies, setCompanies] = useState<CompanyResponse[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [reason, setReason] = useState<string>('');
+  const [isChangingCompany, setIsChangingCompany] = useState(false);
+  const navigate = useNavigate();
+
+  const employeeService = new EmployeeService();
+  const companyService = new CompanyService();
+
+  useEffect(() => {
+    if (changeCompanyDialogOpen) {
+      loadCompanies();
+    }
+  }, [changeCompanyDialogOpen]);
+
+  const loadCompanies = async () => {
+    try {
+      const companiesData = await companyService.getCompanies();
+      setCompanies(companiesData);
+    } catch (error) {
+      toast.error('Error al cargar las compañías');
+      console.error('Error loading companies:', error);
+    }
+  };
 
   const onSave = async (newUser: EmployeeResponse) => {
     console.log('Edit User saved:', newUser);
     setDialogOpen(false);
   };
 
-  //   const fetchEmployeeFile = async () => {
-  //   try {
-  //     setLoadingFile(true);
-  //     const response = await fileService.getEmployeeFiles(employeeId);
-  //     setFileData(response);
-  //   } catch (e) {
-  //     console.error('Error al cargar file del empleado:', e);
-  //     setFileData(null);
-  //   } finally {
-  //     setLoadingFile(false);
-  //   }
-  // };
+  const handleViewHistory = () => {
+    navigate(`/employees/${employee.id}/history`);
+  };
 
-  // const handleOpenViewFileDrawer = () => {
-  //   fetchEmployeeFile();
-  //   setViewFileDrawerOpen(true);
-  // };
+  const handleChangeCompany = async () => {
+    if (!selectedCompanyId) {
+      toast.error('Por favor selecciona una compañía');
+      return;
+    }
+
+    try {
+      setIsChangingCompany(true);
+      await employeeService.changeEmployeeCompany(employee.id, {
+        newCompanyId: selectedCompanyId,
+        reason: reason || undefined,
+      });
+
+      toast.success('Compañía cambiada exitosamente');
+      setChangeCompanyDialogOpen(false);
+      setSelectedCompanyId('');
+      setReason('');
+
+      // Recargar la página o actualizar el estado del empleado
+      window.location.reload();
+    } catch (error) {
+      toast.error('Error al cambiar de compañía');
+      console.error('Error changing company:', error);
+    } finally {
+      setIsChangingCompany(false);
+    }
+  };
 
   return (
     <>
@@ -54,6 +109,67 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
       >
         <EmployeeForm onSave={onSave} employee={employee} />
       </ReusableDialog>
+
+      <ReusableDialog
+        title="Cambiar Compañía"
+        description="Selecciona la nueva compañía para este empleado"
+        open={changeCompanyDialogOpen}
+        onOpenChange={setChangeCompanyDialogOpen}
+        className="!max-w-[30rem]"
+      >
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="company">Nueva Compañía *</Label>
+            <Select
+              value={selectedCompanyId}
+              onValueChange={setSelectedCompanyId}
+            >
+              <SelectTrigger id="company">
+                <SelectValue placeholder="Selecciona una compañía" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.name} ({company.type})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2 resize-none">
+            <Label htmlFor="reason">Razón (Opcional)</Label>
+            <Textarea
+              id="reason"
+              placeholder="Motivo del cambio de compañía..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              maxLength={500}
+            />
+            <p className="text-xs text-muted-foreground">
+              {reason.length}/500 caracteres
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setChangeCompanyDialogOpen(false)}
+              disabled={isChangingCompany}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleChangeCompany}
+              disabled={isChangingCompany || !selectedCompanyId}
+            >
+              {isChangingCompany ? 'Cambiando...' : 'Cambiar Compañía'}
+            </Button>
+          </div>
+        </div>
+      </ReusableDialog>
+
       <Card className="w-full">
         <CardContent>
           <section className="flex justify-between items-center p-4 w-full">
@@ -65,10 +181,11 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
               </span>
               <span className="flex items-center gap-2">
                 <Briefcase />
-                {positionName.charAt(0).toUpperCase() + positionName.slice(1)}
+                {positionName?.charAt(0).toUpperCase() +
+                  positionName?.slice(1) || 'No definido'}
                 <span>|</span>
-                {departmentName.charAt(0).toUpperCase() +
-                  departmentName.slice(1)}
+                {departmentName?.charAt(0).toUpperCase() +
+                  departmentName?.slice(1) || 'No definido'}
               </span>
               <span className="flex items-center gap-2">
                 <StatusBadge status={employee.status} />
@@ -96,48 +213,22 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
                   <UserRound />
                   <span>{EmployeeDetailsTexts.edit}</span>
                 </Button>
-                {/* <Button variant="outline" disabled>
+                <Button variant="outline" onClick={handleViewHistory}>
                   <FileText />
-                  <span>Ver File</span>
-                </Button> */}
+                  <span>Ver Historial</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setChangeCompanyDialogOpen(true)}
+                >
+                  <Building2 />
+                  <span>Cambiar Compañía</span>
+                </Button>
               </section>
             </section>
           </section>
         </CardContent>
       </Card>
-
-      {/* <Drawer open={viewFileDrawerOpen} onOpenChange={setViewFileDrawerOpen}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>File del Empleado</DrawerTitle>
-            <DrawerDescription>
-              Vista completa del file fusionado
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="overflow-y-auto flex-1">
-            {loadingFile ? (
-              <div className="flex items-center justify-center h-full">
-                <Skeleton className="h-96 w-full" />
-              </div>
-            ) : fileData ? (
-              <PdfViewerComponent
-                fileData={fileData}
-                showDownloadButton={true}
-                downloadFileName={`file-${employeeId}.pdf`}
-              />
-            ) : (
-              <div className="p-6 text-center text-gray-500">
-                No hay file disponible
-              </div>
-            )}
-          </div>
-          <DrawerFooter>
-            <DrawerClose asChild>
-              <Button variant="outline">Cerrar</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer> */}
     </>
   );
 }

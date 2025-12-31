@@ -13,6 +13,8 @@ import {
   Edit2,
   Trash2,
   CheckCircle2,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AbsenceService } from '@/rest-client/services/AbsenceService';
@@ -99,6 +101,17 @@ const getMonthRange = (monthsAgo: number) => {
   };
 };
 
+// Función para determinar en qué mes está un absence
+const getMonthsAgoFromDate = (dateString: string): number => {
+  const absenceDate = new Date(dateString);
+  const now = new Date();
+  
+  const yearDiff = now.getFullYear() - absenceDate.getFullYear();
+  const monthDiff = now.getMonth() - absenceDate.getMonth();
+  
+  return yearDiff * 12 + monthDiff;
+};
+
 const absenceService = new AbsenceService();
 
 export function AbsencePermissionSection({
@@ -112,6 +125,7 @@ export function AbsencePermissionSection({
   const [editingAbsence, setEditingAbsence] = useState<AbsenceResponse | null>(
     null
   );
+  const [useReplaceMode, setUseReplaceMode] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
   const [monthlyAbsences, setMonthlyAbsences] = useState<
     Map<number, AbsenceResponse[] | null>
@@ -121,6 +135,12 @@ export function AbsencePermissionSection({
   const [absenceToDelete, setAbsenceToDelete] =
     useState<AbsenceResponse | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [processedWarningOpen, setProcessedWarningOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'edit' | 'delete';
+    absence: AbsenceResponse;
+    isCurrentMonth: boolean;
+  } | null>(null);
 
   useEffect(() => {
     fetchCurrentAbsences();
@@ -148,7 +168,40 @@ export function AbsencePermissionSection({
     }
   };
 
-  const handleAbsenceSaved = (savedAbsence: AbsenceResponse) => {
+  const reloadMonth = async (monthsAgo: number) => {
+    setLoadingMonths((prev) => new Set(prev).add(monthsAgo));
+
+    try {
+      const { startDate, endDate } = getMonthRange(monthsAgo);
+      const absences = await absenceService.getAbsencesByEmployee(
+        employeeId,
+        startDate,
+        endDate
+      );
+      const filteredAbsences = absences.filter(
+        (event) =>
+          event.description &&
+          (event.description.toLowerCase().includes('permiso') ||
+            event.description.toLowerCase().includes('falta'))
+      );
+      setMonthlyAbsences((prev) =>
+        new Map(prev).set(monthsAgo, filteredAbsences)
+      );
+    } catch (err) {
+      console.error(`Error reloading month ${monthsAgo}:`, err);
+      toast.error('Error al recargar', {
+        description: 'No se pudo actualizar los datos del mes',
+      });
+    } finally {
+      setLoadingMonths((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(monthsAgo);
+        return newSet;
+      });
+    }
+  };
+
+  const handleAbsenceSaved = async (savedAbsence: AbsenceResponse) => {
     if (editingAbsence) {
       // Actualizar existente
       setAbsenceEvents((prev) =>
@@ -161,17 +214,57 @@ export function AbsencePermissionSection({
     }
 
     setDialogOpen(false);
-    fetchCurrentAbsences();
+    setUseReplaceMode(false);
+    
+    // Recargar mes actual
+    await fetchCurrentAbsences();
+    
+    // Determinar el mes del absence y recargar si no es mes actual
+    const monthsAgo = getMonthsAgoFromDate(savedAbsence.date);
+    if (monthsAgo > 0 && monthlyAbsences.has(monthsAgo)) {
+      await reloadMonth(monthsAgo);
+    }
   };
 
-  const handleEdit = (absence: AbsenceResponse) => {
+  const handleEdit = (absence: AbsenceResponse, isCurrentMonth: boolean = true) => {
+    // Si está procesado, mostrar advertencia primero
+    if (absence.processed) {
+      setPendingAction({ type: 'edit', absence, isCurrentMonth });
+      setProcessedWarningOpen(true);
+      return;
+    }
+    
     setEditingAbsence(absence);
+    setUseReplaceMode(!isCurrentMonth);
     setDialogOpen(true);
   };
 
   const handleDeleteClick = (absence: AbsenceResponse) => {
+    // Si está procesado, mostrar advertencia primero
+    if (absence.processed) {
+      setPendingAction({ type: 'delete', absence, isCurrentMonth: true });
+      setProcessedWarningOpen(true);
+      return;
+    }
+    
     setAbsenceToDelete(absence);
     setDeleteDialogOpen(true);
+  };
+
+  const handleProcessedWarningConfirm = () => {
+    if (!pendingAction) return;
+    
+    if (pendingAction.type === 'edit') {
+      setEditingAbsence(pendingAction.absence);
+      setUseReplaceMode(!pendingAction.isCurrentMonth);
+      setDialogOpen(true);
+    } else if (pendingAction.type === 'delete') {
+      setAbsenceToDelete(pendingAction.absence);
+      setDeleteDialogOpen(true);
+    }
+    
+    setProcessedWarningOpen(false);
+    setPendingAction(null);
   };
 
   const handleDeleteConfirm = async () => {
@@ -192,6 +285,15 @@ export function AbsencePermissionSection({
           </p>
         ),
       });
+
+      // Recargar mes actual
+      await fetchCurrentAbsences();
+      
+      // Determinar el mes del absence eliminado y recargar si no es mes actual
+      const monthsAgo = getMonthsAgoFromDate(absenceToDelete.date);
+      if (monthsAgo > 0 && monthlyAbsences.has(monthsAgo)) {
+        await reloadMonth(monthsAgo);
+      }
     } catch (error) {
       console.error('Error al eliminar:', error);
       toast.error('Error al eliminar', {
@@ -212,6 +314,7 @@ export function AbsencePermissionSection({
     setDialogOpen(open);
     if (!open) {
       setEditingAbsence(null);
+      setUseReplaceMode(false);
     }
   };
 
@@ -286,7 +389,7 @@ export function AbsencePermissionSection({
       <div
         key={event.id}
         className={`flex items-center justify-between p-3 border rounded-lg ${
-          event.processed ? 'bg-slate-50' : ''
+          event.processed ? 'bg-slate-50 border-green-200' : ''
         }`}
       >
         <div className="flex items-center gap-3 flex-1">
@@ -337,32 +440,25 @@ export function AbsencePermissionSection({
               <p className="text-xs text-green-600">Aplicado en planilla</p>
             )}
           </div>
-          {isCurrentMonth && !event.processed && (
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleEdit(event)}
-                title="Editar"
-              >
-                <Edit2 className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => handleDeleteClick(event)}
-                title="Eliminar"
-                className="text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-          {event.processed && (
-            <div className="flex items-center text-xs text-muted-foreground ml-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            </div>
-          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleEdit(event, isCurrentMonth)}
+              title={isCurrentMonth ? "Editar" : "Editar (reemplazar)"}
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => handleDeleteClick(event)}
+              title="Eliminar"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -383,11 +479,17 @@ export function AbsencePermissionSection({
     <section className="flex flex-col gap-6 p-4">
       <ReusableDialog
         title={
-          editingAbsence ? 'Editar Permiso/Falta' : 'Registrar Permiso o Falta'
+          editingAbsence 
+            ? useReplaceMode 
+              ? 'Editar Permiso/Falta (Reemplazar)' 
+              : 'Editar Permiso/Falta'
+            : 'Registrar Permiso o Falta'
         }
         description={
           editingAbsence
-            ? 'Modifica los datos del permiso o falta'
+            ? useReplaceMode
+              ? 'Se eliminará y recreará el registro con los nuevos datos'
+              : 'Modifica los datos del permiso o falta'
             : 'Registra un nuevo permiso o falta para el empleado'
         }
         open={dialogOpen}
@@ -396,6 +498,7 @@ export function AbsencePermissionSection({
         <AbsencePermissionForm
           employeeId={employeeId}
           absence={editingAbsence || undefined}
+          useReplaceMode={useReplaceMode}
           onSave={handleAbsenceSaved}
           onCancel={() => handleDialogChange(false)}
         />
@@ -418,6 +521,42 @@ export function AbsencePermissionSection({
               className="bg-destructive/85 text-destructive-foreground hover:bg-destructive text-slate-100"
             >
               {deleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={processedWarningOpen} onOpenChange={setProcessedWarningOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Registro ya procesado
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Este permiso/falta ya fue procesado en una planilla anterior.
+              </p>
+              <p className="font-medium text-amber-600">
+                ⚠️ Si realizas cambios, deberás recalcular la planilla de ese mes para ver los cambios reflejados.
+              </p>
+              <p className="text-sm">
+                ¿Deseas continuar con {pendingAction?.type === 'edit' ? 'la edición' : 'la eliminación'}?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setProcessedWarningOpen(false);
+              setPendingAction(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleProcessedWarningConfirm}
+              className="bg-amber-500 hover:bg-amber-600"
+            >
+              Continuar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -506,18 +645,32 @@ export function AbsencePermissionSection({
 
           return (
             <div key={monthsAgo} className="border rounded-xl">
-              <Button
-                variant="ghost"
-                className="w-full justify-between p-4 h-auto"
-                onClick={() => toggleMonth(monthsAgo)}
-              >
-                <span className="font-medium">{label}</span>
-                {isExpanded ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
+              <div className="flex items-center justify-between p-4">
+                <Button
+                  variant="ghost"
+                  className="flex-1 justify-between h-auto p-0"
+                  onClick={() => toggleMonth(monthsAgo)}
+                >
+                  <span className="font-medium">{label}</span>
+                  {isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+                {isExpanded && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => reloadMonth(monthsAgo)}
+                    disabled={isLoading}
+                    className="ml-2"
+                    title="Recargar mes"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  </Button>
                 )}
-              </Button>
+              </div>
 
               {isExpanded && (
                 <div className="p-4 pt-0">
