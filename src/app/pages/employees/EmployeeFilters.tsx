@@ -42,6 +42,12 @@ const EMPLOYEE_TYPES = [
   { value: 'FULL_TIME', label: 'Planilla' },
 ] as const;
 
+const ASSOCIATION_STATUS = [
+  { value: 'all', label: 'Todos los empleados' },
+  { value: 'false', label: 'Activos' },
+  { value: 'true', label: 'Desvinculados' },
+] as const;
+
 export function EmployeeFilters({
   filters,
   onChange,
@@ -132,25 +138,51 @@ export function EmployeeFilters({
   ]);
 
   const handleTypeChange = (value: string) => {
-    // Si el valor es "all", no enviar el filtro
-    onChange({
+    const newFilters = {
       ...filters,
+      search: debouncedSearch || undefined,
+      ci: debouncedCi || undefined,
+      email: debouncedEmail || undefined,
+      phone: debouncedPhone || undefined,
       type: value === 'all' ? undefined : value,
-    });
+    };
+    onChange(newFilters);
+  };
+
+  const handleAssociationStatusChange = (value: string) => {
+    const newFilters = {
+      ...filters,
+      search: debouncedSearch || undefined,
+      ci: debouncedCi || undefined,
+      email: debouncedEmail || undefined,
+      phone: debouncedPhone || undefined,
+      isDisassociated: value === 'all' ? undefined : value === 'true',
+    };
+    onChange(newFilters);
   };
 
   const handleBranchChange = (value: string) => {
-    onChange({
+    const newFilters = {
       ...filters,
+      search: debouncedSearch || undefined,
+      ci: debouncedCi || undefined,
+      email: debouncedEmail || undefined,
+      phone: debouncedPhone || undefined,
       branchId: value === 'all' ? undefined : value,
-    });
+    };
+    onChange(newFilters);
   };
 
   const handlePositionChange = (value: string) => {
-    onChange({
+    const newFilters = {
       ...filters,
+      search: debouncedSearch || undefined,
+      ci: debouncedCi || undefined,
+      email: debouncedEmail || undefined,
+      phone: debouncedPhone || undefined,
       positionId: value === 'all' ? undefined : value,
-    });
+    };
+    onChange(newFilters);
   };
 
   const clearAllFilters = () => {
@@ -167,8 +199,15 @@ export function EmployeeFilters({
     localEmail ||
     localPhone ||
     filters.type ||
+    filters.isDisassociated !== undefined ||
     filters.branchId ||
     filters.positionId;
+
+  // Determinar el valor actual del select de estado de asociación
+  const getAssociationStatusValue = () => {
+    if (filters.isDisassociated === undefined) return 'all';
+    return filters.isDisassociated ? 'true' : 'false';
+  };
 
   return (
     <div className={`flex flex-col sm:flex-row gap-2 ${className}`}>
@@ -210,6 +249,27 @@ export function EmployeeFilters({
           </SheetHeader>
 
           <div className="space-y-4 py-6">
+            {/* Estado de Asociación */}
+            <div className="space-y-2">
+              <Label htmlFor="association-status">Estado de Empleado</Label>
+              <Select
+                value={getAssociationStatusValue()}
+                onValueChange={handleAssociationStatusChange}
+                disabled={disabled}
+              >
+                <SelectTrigger id="association-status">
+                  <SelectValue placeholder="Selecciona un estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSOCIATION_STATUS.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* CI */}
             <div className="space-y-2">
               <Label htmlFor="ci">Cédula de Identidad</Label>

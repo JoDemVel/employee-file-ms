@@ -40,6 +40,12 @@ export class PaymentService {
     if (searchParams?.type) {
       params.append('type', searchParams.type);
     }
+    if (searchParams?.status) {
+      params.append('status', searchParams.status);
+    }
+    if (searchParams?.isDisassociated !== undefined) {
+      params.append('isDisassociated', searchParams.isDisassociated.toString());
+    }
     if (searchParams?.branchId) {
       params.append('branchId', searchParams.branchId);
     }

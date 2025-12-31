@@ -69,6 +69,7 @@ export const DataTableTexts = {
 
 export const DataTableColumnsTexts = {
   employee: 'Empleado',
+  status: 'Estado',
   department: 'Departamento',
   position: 'Posición',
   contact: 'Contacto',

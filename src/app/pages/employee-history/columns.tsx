@@ -24,6 +24,10 @@ const getChangeTypeBadge = (changeType: string) => {
       className: 'bg-green-100 text-green-800 hover:bg-green-200',
       label: 'Asociado',
     },
+    COMPANY_CHANGE: {
+      className: 'bg-teal-100 text-teal-800 hover:bg-teal-200',
+      label: 'Cambio de Empresa',
+    },
   };
 
   const config = variants[changeType] || {

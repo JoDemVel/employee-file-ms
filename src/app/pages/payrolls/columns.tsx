@@ -12,7 +12,6 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-// Mapeo de tipos de deducciones a etiquetas en español
 const deductionLabels: Record<string, string> = {
   ADVANCE: 'Anticipos',
   AFP: 'Gestora',
@@ -26,13 +25,26 @@ export const currentColumns: ColumnDef<PayrollEmployeeResponse>[] = [
     id: 'employee',
     header: () => <span className="pl-4">Empleado</span>,
     cell: ({ row }) => {
-      const { firstName, lastName, ci, branchName } = row.original.employee;
+      const { firstName, lastName, ci, branchName, status } =
+        row.original.employee;
       const position = row.original.employee.positionName || 'Sin cargo';
+      const isActive = status === 'ACTIVE';
       return (
         <section className="pl-4 min-w-[200px]">
-          <span className="font-medium block">
-            {firstName} {lastName}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">
+              {firstName} {lastName}
+            </span>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                isActive
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-orange-100 text-orange-500'
+              }`}
+            >
+              {isActive ? 'Activo' : 'Inactivo'}
+            </span>
+          </div>
           <span className="text-sm text-muted-foreground block">CI: {ci}</span>
           <span>
             <span className="text-sm font-medium">{branchName}</span>
@@ -227,14 +239,26 @@ export const historicalColumns: ColumnDef<PaymentEmployeeResponse>[] = [
     id: 'employee',
     header: () => <span className="pl-4">Empleado</span>,
     cell: ({ row }) => {
-      const { firstName, lastName, ci } = row.original.employee;
-      const branchName = row.original.employee.branchName ?? '';
+      const { firstName, lastName, ci, branchName, status } =
+        row.original.employee;
       const position = row.original.employee.positionName || 'Sin cargo';
+      const isActive = status === 'ACTIVE';
       return (
         <section className="pl-4 min-w-[200px]">
-          <span className="font-medium block">
-            {firstName} {lastName}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">
+              {firstName} {lastName}
+            </span>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                isActive
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-orange-100 text-orange-500'
+              }`}
+            >
+              {isActive ? 'Activo' : 'Inactivo'}
+            </span>
+          </div>
           <span className="text-sm text-muted-foreground block">CI: {ci}</span>
           <span>
             <span className="text-sm font-medium">{branchName}</span>

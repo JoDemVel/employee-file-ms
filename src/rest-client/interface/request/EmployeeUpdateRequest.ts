@@ -25,5 +25,6 @@ export interface EmergencyContactRequest {
 
 export interface EmployeeChangeCompanyRequest {
   newCompanyId: string;
+  newCompanyName: string;
   reason?: string;
 }

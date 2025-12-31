@@ -37,7 +37,8 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [changeCompanyDialogOpen, setChangeCompanyDialogOpen] = useState(false);
   const [companies, setCompanies] = useState<CompanyResponse[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [selectedCompany, setSelectedCompany] =
+    useState<CompanyResponse | null>(null);
   const [reason, setReason] = useState<string>('');
   const [isChangingCompany, setIsChangingCompany] = useState(false);
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
   };
 
   const handleChangeCompany = async () => {
-    if (!selectedCompanyId) {
+    if (!selectedCompany) {
       toast.error('Por favor selecciona una compañía');
       return;
     }
@@ -79,17 +80,17 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
     try {
       setIsChangingCompany(true);
       await employeeService.changeEmployeeCompany(employee.id, {
-        newCompanyId: selectedCompanyId,
+        newCompanyId: selectedCompany?.id ?? '',
+        newCompanyName: selectedCompany?.name ?? '',
         reason: reason || undefined,
       });
 
       toast.success('Compañía cambiada exitosamente');
       setChangeCompanyDialogOpen(false);
-      setSelectedCompanyId('');
+      setSelectedCompany(null);
       setReason('');
 
-      // Recargar la página o actualizar el estado del empleado
-      window.location.reload();
+      navigate(`/employees`);
     } catch (error) {
       toast.error('Error al cambiar de compañía');
       console.error('Error changing company:', error);
@@ -121,8 +122,11 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
           <div className="space-y-2">
             <Label htmlFor="company">Nueva Compañía *</Label>
             <Select
-              value={selectedCompanyId}
-              onValueChange={setSelectedCompanyId}
+              value={selectedCompany?.id ?? ''}
+              onValueChange={(value) => {
+                const company = companies.find((c) => c.id === value) || null;
+                setSelectedCompany(company);
+              }}
             >
               <SelectTrigger id="company">
                 <SelectValue placeholder="Selecciona una compañía" />
@@ -162,7 +166,7 @@ export function EmployeeInfo({ employee }: { employee: EmployeeResponse }) {
             </Button>
             <Button
               onClick={handleChangeCompany}
-              disabled={isChangingCompany || !selectedCompanyId}
+              disabled={isChangingCompany || !selectedCompany}
             >
               {isChangingCompany ? 'Cambiando...' : 'Cambiar Compañía'}
             </Button>

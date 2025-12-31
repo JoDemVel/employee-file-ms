@@ -4,6 +4,8 @@ export interface EmployeeSearchParams {
   email?: string;
   phone?: string;
   type?: string;
+  status?: string;
+  isDisassociated?: boolean;
   branchId?: string;
   positionId?: string;
 }

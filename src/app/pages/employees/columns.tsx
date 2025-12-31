@@ -11,7 +11,7 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
       <span className="pl-4">{DataTableColumnsTexts.employee}</span>
     ),
     cell: ({ row }) => {
-      const { firstName, lastName, hireDate } = row.original;
+      const { firstName, lastName, hireDate, branchName } = row.original;
       const formattedDate = formatDate(hireDate, 'es-ES');
 
       return (
@@ -25,7 +25,30 @@ export const columns: ColumnDef<EmployeeResponse>[] = [
               {formattedDate}
             </span>
           </span>
+          <span className="block">
+            <span className="text-sm font-medium">
+              {branchName ?? 'Sucursal No definida'}
+            </span>
+          </span>
         </section>
+      );
+    },
+  },
+  {
+    accessorKey: 'status',
+    header: DataTableColumnsTexts.status,
+    cell: ({ row }) => {
+      const isActive = row.getValue('status') === 'ACTIVE';
+      return (
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+            isActive
+              ? 'bg-green-100 text-green-800'
+              : 'bg-orange-100 text-orange-500'
+          }`}
+        >
+          {isActive ? 'Activo' : 'Inactivo'}
+        </span>
       );
     },
   },

@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, ArrowLeft } from 'lucide-react';
 import { DataTable } from '@/app/shared/components/DataTable';
 import { EmployeeHistoryService } from '@/rest-client/services/EmployeeHistoryService';
-import type { 
-  EmployeeHistoryResponse, 
+import type {
+  EmployeeHistoryResponse,
 } from '@/rest-client/interface/response/EmployeeHistoryResponse';
 import { historyColumns } from './columns';
 import { useParams } from 'react-router';

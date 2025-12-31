@@ -113,6 +113,7 @@ export default function PayrollsPage() {
         filters.email ||
         filters.phone ||
         filters.type ||
+        filters.isDisassociated !== undefined ||
         filters.branchId ||
         filters.positionId
     );
